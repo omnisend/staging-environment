@@ -24,8 +24,7 @@ This repository includes a Docker-based development environment to make it easy 
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/wp-easy-staging.git
-   cd wp-easy-staging
+   git clone https://github.com/omnisend/staging-environment.git
    ```
 
 2. Start the development environment:
@@ -39,17 +38,12 @@ This repository includes a Docker-based development environment to make it easy 
    - phpMyAdmin at http://localhost:8080
    - WP-CLI container for WordPress management
 
-3. Install WordPress using the helper script:
-   ```
-   ./dev.sh install-wp
-   ```
-
-4. Activate the plugin:
+3. Activate the plugin:
    ```
    ./dev.sh activate
    ```
 
-5. Access WordPress admin:
+4. Access WordPress admin:
    - URL: http://localhost:8000/wp-admin
    - Username: admin
    - Password: password
