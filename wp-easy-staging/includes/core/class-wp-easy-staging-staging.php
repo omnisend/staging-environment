@@ -467,50 +467,65 @@ RewriteRule . /index.php [L]
         $site = $this->get_staging_site($staging_id);
         
         if (!$site) {
+            $this->log("Failed to delete staging site: Site not found with ID {$staging_id}");
             return false;
         }
         
         // Log operation
-        $this->log("Deleting staging site: {$site['name']}");
+        $this->log("Starting deletion of staging site: {$site['name']} (ID: {$staging_id})");
         
-        // Delete staging directory
-        $staging_path = $site['staging_path'];
-        if (is_dir($staging_path)) {
-            $this->rrmdir($staging_path);
+        try {
+            // Start transaction
+            $wpdb->query('START TRANSACTION');
+            
+            // Get all tables that start with the staging prefix
+            $staging_prefix = $site['staging_prefix'];
+            $tables = $wpdb->get_col($wpdb->prepare(
+                "SELECT TABLE_NAME 
+                FROM information_schema.TABLES 
+                WHERE TABLE_SCHEMA = %s 
+                AND (TABLE_NAME LIKE %s OR TABLE_NAME LIKE %s)",
+                DB_NAME,
+                $wpdb->esc_like($staging_prefix) . '%',
+                'wpstg%\_' . $wpdb->esc_like($staging_prefix) . '%'
+            ));
+            
+            // Drop all staging tables
+            foreach ($tables as $table) {
+                $this->log("Dropping table: {$table}");
+                $wpdb->query("DROP TABLE IF EXISTS `{$table}`");
+            }
+            
+            // Delete staging site record
+            $sites_table = $wpdb->prefix . 'wp_easy_staging_sites';
+            $wpdb->delete($sites_table, array('id' => $staging_id));
+            
+            // Delete related records
+            $changes_table = $wpdb->prefix . 'wp_easy_staging_changes';
+            $wpdb->delete($changes_table, array('staging_id' => $staging_id));
+            
+            $conflicts_table = $wpdb->prefix . 'wp_easy_staging_conflicts';
+            $wpdb->delete($conflicts_table, array('staging_id' => $staging_id));
+            
+            // Commit transaction
+            $wpdb->query('COMMIT');
+            
+            // Delete staging directory
+            $staging_path = $site['staging_path'];
+            if (is_dir($staging_path)) {
+                $this->log("Removing staging directory: {$staging_path}");
+                $this->rrmdir($staging_path);
+            }
+            
+            $this->log("Staging site deleted successfully");
+            return true;
+            
+        } catch (Exception $e) {
+            // Rollback on error
+            $wpdb->query('ROLLBACK');
+            $this->log("Failed to delete staging site: " . $e->getMessage());
+            return false;
         }
-        
-        // Delete staging database tables
-        $staging_prefix = $site['staging_prefix'];
-        $tables = $this->db->get_tables($staging_prefix);
-        
-        foreach ($tables as $table) {
-            $wpdb->query("DROP TABLE IF EXISTS `{$table}`");
-        }
-        
-        // Delete staging site record
-        $sites_table = $wpdb->prefix . 'wp_easy_staging_sites';
-        
-        $result = $wpdb->delete(
-            $sites_table,
-            array('id' => $staging_id)
-        );
-        
-        // Delete related records
-        $changes_table = $wpdb->prefix . 'wp_easy_staging_changes';
-        $wpdb->delete(
-            $changes_table,
-            array('staging_id' => $staging_id)
-        );
-        
-        $conflicts_table = $wpdb->prefix . 'wp_easy_staging_conflicts';
-        $wpdb->delete(
-            $conflicts_table,
-            array('staging_id' => $staging_id)
-        );
-        
-        $this->log("Staging site deleted successfully");
-        
-        return $result;
     }
 
     /**
