@@ -15,6 +15,10 @@ if ( !defined('STL_PLUGIN_URL' ) )
 
 if ( !defined('STL_PLUGIN_PATH' ) )
 	define( 'STL_PLUGIN_PATH', trailingslashit( plugin_dir_path( __FILE__ ) ) );
+
+if ( !defined('STL_STAGING_NAME_DEFAULT' ) )
+	define( 'STL_STAGING_NAME_DEFAULT', 'staging' );
+
 /**
  * Helper functions
  */

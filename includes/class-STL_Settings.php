@@ -10,7 +10,6 @@ if ( ! class_exists('STL_Settings') ) {
 		private $option_group_general;
 		private $option_page_general;
 		private $option_page_cli;
-        private $staging_name_default;
 
 		public function __construct() {
 
@@ -19,8 +18,6 @@ if ( ! class_exists('STL_Settings') ) {
 			$this->option_page_general  = 'settings-general';
 
 			$this->options_general      = get_option( $this->option_group_general );
-
-            $this->staging_name_default = 'staging';
 
 			add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue' ) );
 
@@ -50,7 +47,7 @@ if ( ! class_exists('STL_Settings') ) {
 				'manage_options',
 				'staging2live',
 				array( $this, 'create_admin_page' ),
-				'dashicons-performance',
+				'dashicons-controls-repeat',
 				90
 			);
 
@@ -127,7 +124,7 @@ if ( ! class_exists('STL_Settings') ) {
 					'id'           => $id,
 					'value'        => $this->options_general[$id] ?? '',
 					'description'  => esc_html__('Please add the name of the staging site. Please save it before pressing the button "Create Staging Site"', 'staging2live'),
-					'placeholder'  => $this->staging_name_default,
+					'placeholder'  => STL_STAGING_NAME_DEFAULT,
 					'width'        => '90%'
 				)
 			);
@@ -275,22 +272,32 @@ if ( ! class_exists('STL_Settings') ) {
 			}
 
 			// check if class exists
-			if ( ! class_exists( 'STL_Database' ) ) {
+			if ( ! class_exists( 'STL_Database' ) || ! class_exists( 'STL_File_Handling' ) ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'Class is missing. Please contact plugin author.', 'staging2live' ) ) );
 			}
 
-            $staging_name = empty( $this->options_general[ 'staging_name' ] ) ? $this->staging_name_default : $this->options_general[ 'staging_name' ];
+            $staging_name = empty( $this->options_general[ 'staging_name' ] ) ? STL_STAGING_NAME_DEFAULT : $this->options_general[ 'staging_name' ];
 
             $database = new STL_Database( $staging_name );
             $result = $database->duplicate_tables();
 
-            if( ! $result ) {
-	            wp_send_json_error( array( 'message' => esc_html__( 'Error while duplicating the database.', 'staging2live' ) ) );
-            }
+			if( ! $result ) {
+				wp_send_json_error( array( 'message' => esc_html__( 'Error while duplicating the database.', 'staging2live' ) ) );
+			}
+
+			$file_lister = new STL_File_Handling();
+			$file_list = $file_lister->list_files();
+
+			if ( is_wp_error( $file_list ) ) {
+				wp_send_json_error( array( 'message' => sprintf( esc_html__( 'Error %s.', 'staging2live' ), $file_list->get_error_message() ) ) );
+			} else {
+				// Insert file data into the database
+				$file_lister->insert_files_into_database();
+			}
 
             $staging_domain = trailingslashit( STL_General::get_site_url() ) . trailingslashit( $staging_name );
 
-			// Antwort zurücksenden
+			// Simple success message
 			wp_send_json_success( array( 'message' => sprintf( esc_html__( 'Staging site successfully created. The URL is %s', 'staging2live' ), '<a href="' . $staging_domain . '" target="_blank">' . $staging_domain . '<a/>' ) ) );
 		}
 
