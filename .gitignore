@@ -1,0 +1,74 @@
+# WordPress specific
+wp-config.php
+wp-content/advanced-cache.php
+wp-content/backup-db/
+wp-content/backups/
+wp-content/blogs.dir/
+wp-content/cache/
+wp-content/upgrade/
+wp-content/uploads/
+wp-content/wp-cache-config.php
+wp-content/plugins/hello.php
+
+# WordPress core (if working with it)
+/wordpress/
+/wp-admin/
+/wp-includes/
+/wp-*.php
+/index.php
+/license.txt
+/readme.html
+/xmlrpc.php
+
+# Docker volumes
+.docker-volumes/
+
+# Docker-generated files
+docker-compose.override.yml
+
+# IDE and editor configs
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+.DS_Store
+.project
+.settings
+.classpath
+.factorypath
+*.swp
+*.swo
+
+# Node dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+.pnp/
+.pnp.js
+
+# Composer dependencies
+vendor/
+composer.phar
+
+# PHP files
+.phpunit.result.cache
+/vendor/
+composer.lock
+
+# Debug files
+*.log
+wp-content/debug.log
+
+# Build directories
+/build/
+/dist/
+.sass-cache/
+.tmp/
+
+# Testing artifacts
+phpunit.xml
+phpunit.xml.dist
+/tests/coverage/
+.phpcs.xml.dist
+phpcs.xml 
