@@ -73,3 +73,6 @@ foreach ( glob( STL_CORE_PLUGIN_PATH . 'includes/class-*.php' ) as $filename ) {
 	include_once $filename;
 }
 
+if( class_exists( 'STL_General' ) ) {
+	new STL_General();
+}
