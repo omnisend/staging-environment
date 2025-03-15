@@ -54,6 +54,8 @@ class STL_File_Handling {
 
 			// Skip directories that are not files and skip hidden files and directories (starting with a dot)
 			if ( $item->isDot() || $item->getFilename()[0] === '.'  ) {
+			// Skip directories starting with "cache"
+			if ( $item->isDot() || '.' === $item->getFilename()[0] || 0 === strpos( $item->getFilename(), 'cache' ) ) {
 				continue;
 			}
 
