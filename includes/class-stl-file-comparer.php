@@ -310,15 +310,17 @@ class STL_File_Comparer {
             );
         }
         
-        // Get diff
-        if ( class_exists( 'Text_Diff', false ) ) {
-            $left_lines = explode( "\n", $production_content );
-            $right_lines = explode( "\n", $staging_content );
-            
-            $diff = new Text_Diff( 'auto', array( $left_lines, $right_lines ) );
-            $renderer = new Text_Diff_Renderer_Table();
-            $diff_table = $renderer->render( $diff );
-        } else {
+        // Get diff using WordPress built-in diff function
+        $diff_table = wp_text_diff(
+            $production_content,
+            $staging_content,
+            array(
+                'title_left' => __('Production', 'staging2live'),
+                'title_right' => __('Staging', 'staging2live')
+            )
+        );
+
+        if (empty($diff_table)) {
             // Fallback if Text_Diff is not available
             $diff_table = sprintf(
                 '<table class="diff"><tr><th>%s</th><th>%s</th></tr><tr><td>%s</td><td>%s</td></tr></table>',
