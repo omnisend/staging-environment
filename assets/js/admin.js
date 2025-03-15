@@ -3,6 +3,8 @@ jQuery(document).ready(function(){
 
     jQuery("a#create-staging").click( function( event ) {
 
+        jQuery('#response').html('');
+
         jQuery( "a#create-staging" ).css( { "pointer-events":"none", "color":"lightgrey" } );
 
         jQuery( "span.spinner-create-staging" ).addClass("is-active")

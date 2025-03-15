@@ -2,15 +2,23 @@
 class STL_Database {
     private $wpdb;
 
-    public function __construct() {
+	private $staging_name;
+
+    public function __construct( $staging_name ) {
         global $wpdb;
         $this->wpdb = $wpdb;
+
+		$this->staging_name = $staging_name;
+
     }
 
     public function clean_staging_tables(): bool {
-        $staging_tables = $this->wpdb->get_col( "SHOW TABLES LIKE '{$this->wpdb->prefix}staging_%'" );
+        $staging_tables = $this->wpdb->get_col( "SHOW TABLES LIKE '{$this->wpdb->prefix}{$this->staging_name}_%'" );
+
+		error_log( "SHOW TABLES LIKE '{$this->wpdb->prefix}{$this->staging_name}_%'" );
 
         if ( empty( $staging_tables ) ) {
+			error_log( 'nothing to clean');
             return false;
         }
 
@@ -21,17 +29,19 @@ class STL_Database {
         return true;
     }
 
-    public function dublicate_tables(): bool {
+    public function duplicate_tables(): bool {
         $this->clean_staging_tables();
 
         $tables = $this->wpdb->get_col( "SHOW TABLES LIKE '{$this->wpdb->prefix}%'" );
 
         if ( empty( $tables ) ) {
-            return array();
+            return false;
         }
 
         foreach ( $tables as $table ) {
-            $staging_table = str_replace( $this->wpdb->prefix, $this->wpdb->prefix . 'staging_', $table );
+            $staging_table = str_replace( $this->wpdb->prefix, $this->wpdb->prefix . $this->staging_name . '_', $table );
+
+			error_log( '$staging_table='.$staging_table);
 
             $this->wpdb->query( "DROP TABLE IF EXISTS $staging_table" );
 
