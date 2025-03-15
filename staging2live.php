@@ -18,6 +18,11 @@
  * License:     GPLv2 or later (license.txt)
  */
 
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 if ( !defined('STL_CORE_PLUGIN_URL' ) )
 	define( 'STL_CORE_PLUGIN_URL', trailingslashit( plugin_dir_url( __FILE__ ) ) );
 
@@ -61,7 +66,7 @@ function stl_init(): void {
 	// load textdomain
 	load_plugin_textdomain( 'staging2live', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
 }
-add_action ( 'plugins_loaded', 'stl_init' );
+add_action( 'plugins_loaded', 'stl_init' );
 
 // Autoload all PHP files in the includes/ folder.
 foreach ( glob( STL_CORE_PLUGIN_PATH . 'includes/class-*.php' ) as $filename ) {
