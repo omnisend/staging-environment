@@ -56,6 +56,8 @@ class STL_File_Handling {
 			if ( $item->isDot() || $item->getFilename()[0] === '.'  ) {
 			// Skip directories starting with "cache"
 			if ( $item->isDot() || '.' === $item->getFilename()[0] || 0 === strpos( $item->getFilename(), 'cache' ) ) {
+			// Skip directories starting with "cache" but allow files like "cache.php"
+			if ( $item->isDot() || '.' === $item->getFilename()[0] || ( $item->isDir() && 0 === strpos( $item->getFilename(), 'cache' ) ) ) {
 				continue;
 			}
 
