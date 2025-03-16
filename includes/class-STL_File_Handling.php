@@ -184,10 +184,6 @@ class STL_File_Handling {
 		if ( file_exists( $target_directory . '/wp-config.php' ) ) {
 			$data = file_get_contents( $target_directory . '/wp-config.php' );
 
-			update_option( 'ETEST_PREFIX', $GLOBALS['wpdb']->base_prefix );
-			update_option( 'ETEST_ORIGINAL', "'" . $GLOBALS['wpdb']->base_prefix . "'" );
-			update_option( 'ETEST_NEW', "'" . $GLOBALS['wpdb']->base_prefix . $this->table_staging_name . "_'" );
-
 			if ( false !== $data ) {
 				$data = str_replace( "'" . $GLOBALS['wpdb']->base_prefix . "'", "'" . $GLOBALS['wpdb']->base_prefix . $this->table_staging_name . "_'", $data );
 				file_put_contents( $target_directory . '/wp-config.php', $data );
