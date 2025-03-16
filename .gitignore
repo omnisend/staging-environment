@@ -72,3 +72,6 @@ phpunit.xml.dist
 /tests/coverage/
 .phpcs.xml.dist
 phpcs.xml 
+
+
+/website/_site
