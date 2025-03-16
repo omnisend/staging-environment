@@ -185,7 +185,13 @@ class STL_File_Handling {
 			$data = file_get_contents( $target_directory . '/wp-config.php' );
 
 			if ( false !== $data ) {
-				$data = str_replace( "'" . $GLOBALS['wpdb']->base_prefix . "'", "'" . $GLOBALS['wpdb']->base_prefix . $this->table_staging_name . "_'", $data );
+				$staging_url = site_url() . '/' . $this->table_staging_name;
+				$home     = "define( 'WP_HOME', '" . $staging_url . "' );";
+				$siteurl  = "define( 'WP_SITEURL', '" . $staging_url . "' );";
+				$env_type = "define( 'WP_ENVIRONMENT_TYPE', 'staging' );";
+				$data     = str_replace( "'" . $GLOBALS['wpdb']->base_prefix . "'", "'" . $GLOBALS['wpdb']->base_prefix . $this->table_staging_name . "_'", $data );
+				$data     = str_replace( "require_once ABSPATH . 'wp-settings.php';", $home . PHP_EOL . $siteurl . PHP_EOL . $env_type . PHP_EOL . "require_once ABSPATH . 'wp-settings.php';", $data );
+
 				file_put_contents( $target_directory . '/wp-config.php', $data );
 			}
 		}
