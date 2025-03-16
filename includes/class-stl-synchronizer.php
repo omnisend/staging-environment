@@ -198,10 +198,16 @@ class STL_Synchronizer {
                     foreach ($group['changes'] as $section_table => $section_changes) {
                         // If this is the table we're looking for
                         if ($section_table === $table || 
-                           ($table === 'posts' && ($section_table === 'attachments' || $section_table === 'child_posts'))) {
+                           ($table === 'posts' && ($section_table === 'attachments' || $section_table === 'child_posts')) ||
+                           ($table === 'postmeta' && $section_table === 'attachment_meta')) {
                             
-                            // For attachments and child_posts, treat them as posts table
+                            // For attachments, child_posts and attachment_meta, map to the actual table
                             $actual_table = $table;
+                            if ($section_table === 'attachments' || $section_table === 'child_posts') {
+                                $actual_table = 'posts';
+                            } else if ($section_table === 'attachment_meta') {
+                                $actual_table = 'postmeta';
+                            }
                             
                             // Find the change in this section
                             foreach ($section_changes as $section_change) {
@@ -267,14 +273,20 @@ class STL_Synchronizer {
     private function process_db_change($table, $id, $change, &$results) {
         global $wpdb;
         
-        $production_table = $this->production_prefix . $table;
-        $staging_table = $this->staging_prefix . $table;
+        // Handle special case for attachment_meta - it's actually postmeta
+        $actual_table = $table;
+        if ($table === 'attachment_meta') {
+            $actual_table = 'postmeta';
+        }
+        
+        $production_table = $this->production_prefix . $actual_table;
+        $staging_table = $this->staging_prefix . $actual_table;
         
         // Get the primary key column for this table
         $primary_key = $this->get_primary_key($production_table);
         
         if (!$primary_key) {
-            $results['error'][] = sprintf( __( 'Could not find primary key for table %s.', 'staging2live' ), $table );
+            $results['error'][] = sprintf( __( 'Could not find primary key for table %s.', 'staging2live' ), $actual_table );
             return false;
         }
         
@@ -287,7 +299,7 @@ class STL_Synchronizer {
                 $staging_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$staging_table} WHERE {$primary_key} = %s", $id ), ARRAY_A );
                 
                 if (!$staging_row) {
-                    $results['error'][] = sprintf( __( 'Could not find entry with ID %s in staging table %s.', 'staging2live' ), $id, $table );
+                    $results['error'][] = sprintf( __( 'Could not find entry with ID %s in staging table %s.', 'staging2live' ), $id, $actual_table );
                     return false;
                 }
                 
@@ -309,10 +321,10 @@ class STL_Synchronizer {
                 $result = $wpdb->query( $wpdb->prepare( $query, $query_values ) );
                 
                 if (false === $result) {
-                    $results['error'][] = sprintf( __( 'Could not insert entry with ID %s in table %s.', 'staging2live' ), $id, $table );
+                    $results['error'][] = sprintf( __( 'Could not insert entry with ID %s in table %s.', 'staging2live' ), $id, $actual_table );
                     return false;
                 } else {
-                    $results['success'][] = sprintf( __( 'Entry with ID %s inserted successfully in table %s.', 'staging2live' ), $id, $table );
+                    $results['success'][] = sprintf( __( 'Entry with ID %s inserted successfully in table %s.', 'staging2live' ), $id, $actual_table );
                     return true;
                 }
                 break;
@@ -322,7 +334,7 @@ class STL_Synchronizer {
                 $staging_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$staging_table} WHERE {$primary_key} = %s", $id ), ARRAY_A );
                 
                 if (!$staging_row) {
-                    $results['error'][] = sprintf( __( 'Could not find entry with ID %s in staging table %s.', 'staging2live' ), $id, $table );
+                    $results['error'][] = sprintf( __( 'Could not find entry with ID %s in staging table %s.', 'staging2live' ), $id, $actual_table );
                     return false;
                 }
                 
@@ -345,10 +357,10 @@ class STL_Synchronizer {
                 $result = $wpdb->query( $wpdb->prepare( $query, $query_values ) );
                 
                 if (false === $result) {
-                    $results['error'][] = sprintf( __( 'Could not update entry with ID %s in table %s.', 'staging2live' ), $id, $table );
+                    $results['error'][] = sprintf( __( 'Could not update entry with ID %s in table %s.', 'staging2live' ), $id, $actual_table );
                     return false;
                 } else {
-                    $results['success'][] = sprintf( __( 'Entry with ID %s updated successfully in table %s.', 'staging2live' ), $id, $table );
+                    $results['success'][] = sprintf( __( 'Entry with ID %s updated successfully in table %s.', 'staging2live' ), $id, $actual_table );
                     return true;
                 }
                 break;
@@ -358,16 +370,16 @@ class STL_Synchronizer {
                 $result = $wpdb->delete( $production_table, array( $primary_key => $id ), array( '%s' ) );
                 
                 if (false === $result) {
-                    $results['error'][] = sprintf( __( 'Could not delete entry with ID %s from table %s.', 'staging2live' ), $id, $table );
+                    $results['error'][] = sprintf( __( 'Could not delete entry with ID %s from table %s.', 'staging2live' ), $id, $actual_table );
                     return false;
                 } else {
-                    $results['success'][] = sprintf( __( 'Entry with ID %s deleted successfully from table %s.', 'staging2live' ), $id, $table );
+                    $results['success'][] = sprintf( __( 'Entry with ID %s deleted successfully from table %s.', 'staging2live' ), $id, $actual_table );
                     return true;
                 }
                 break;
                 
             default:
-                $results['error'][] = sprintf( __( 'Unknown change type for entry with ID %s in table %s.', 'staging2live' ), $id, $table );
+                $results['error'][] = sprintf( __( 'Unknown change type for entry with ID %s in table %s.', 'staging2live' ), $id, $actual_table );
                 return false;
         }
         
