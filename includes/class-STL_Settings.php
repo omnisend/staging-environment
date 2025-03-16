@@ -268,6 +268,13 @@ if ( ! class_exists('STL_Settings') ) {
 			return $new_input;
 		}
 
+        public static function get_staging_domain(): string {
+			$options_general = get_option( 'staging2live_settings' );
+			$staging_name = empty( $options_general[ 'staging_name' ] ) ? STL_STAGING_NAME_DEFAULT : $this->options_general[ 'staging_name' ];
+
+			return trailingslashit( STL_General::get_site_url() ) . trailingslashit( $staging_name );
+		}
+
 		/**
 		 * WP ajax request for creating staging site
 		 */
