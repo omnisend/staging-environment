@@ -76,14 +76,14 @@ if ( ! class_exists('STL_Settings') ) {
 				<?php settings_errors(); ?>
                 <h2 class="nav-tab-wrapper">
                     <a href="<?php echo admin_url( $this->admin_url ); ?>" class="nav-tab<?php echo ( 'general' == $active_page ? ' nav-tab-active' : '' ); ?>"><?php esc_html_e('General', 'staging2live'); ?></a>
-                    <a href="<?php echo esc_url( add_query_arg( array( 'tab' => 'cli' ), admin_url( $this->admin_url ) ) ); ?>" class="nav-tab<?php echo ( 'cli' == $active_page ? ' nav-tab-active' : '' ); ?>"><?php esc_html_e('WP-CLI', 'staging2live'); ?></a>
+                    <?php /*<a href="<?php echo esc_url( add_query_arg( array( 'tab' => 'cli' ), admin_url( $this->admin_url ) ) ); ?>" class="nav-tab<?php echo ( 'cli' == $active_page ? ' nav-tab-active' : '' ); ?>"><?php esc_html_e('WP-CLI', 'staging2live'); ?></a>*/ ?>
                 </h2>
 
                 <form method="post" action="options.php"><?php //   settings_fields( $this->option_group_general );
 					switch ( $active_page ) {
-						case 'cli':
+						/* case 'cli':
 							do_settings_sections( $this->option_page_cli );
-							break;
+							break; */
 						default:
 							settings_fields( $this->option_group_general );
 							do_settings_sections( $this->option_page_general );
