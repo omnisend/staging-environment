@@ -138,35 +138,89 @@
                 success: function(response) {
                     if (response.success) {
                         if (response.data.is_binary) {
-                            // Show binary file info
-                            var html = '<div class="stl-binary-info">';
-                            html += '<p>This is a binary file. Diff cannot be displayed.</p>';
-
-                            if (response.data.staging_exists && response.data.production_exists) {
-                                html += '<p>File exists in both staging and production environments.</p>';
-                                html += '<p>Staging file size: ' + formatBytes(response.data.staging_size) + '</p>';
-                                html += '<p>Production file size: ' + formatBytes(response.data.production_size) + '</p>';
-                            } else if (response.data.staging_exists) {
-                                html += '<p>File exists only in staging environment.</p>';
-                                html += '<p>File size: ' + formatBytes(response.data.staging_size) + '</p>';
+                            if (response.data.is_image) {
+                                // Show image comparison
+                                var html = '<div class="stl-image-comparison">';
+                                html += '<h3>Image Comparison</h3>';
+                                
+                                html += '<div class="stl-image-container">';
+                                
+                                // Production image
+                                html += '<div class="stl-image-side">';
+                                html += '<h4>Production Version</h4>';
+                                if (response.data.production_exists) {
+                                    html += '<div class="stl-image-wrapper">';
+                                    html += '<img src="' + response.data.production_url + '" alt="Production: ' + response.data.file_name + '">';
+                                    html += '</div>';
+                                    html += '<p>File size: ' + formatBytes(response.data.production_size) + '</p>';
+                                } else {
+                                    html += '<div class="stl-image-missing">Image does not exist in production</div>';
+                                }
+                                html += '</div>';
+                                
+                                // Staging image
+                                html += '<div class="stl-image-side">';
+                                html += '<h4>Staging Version</h4>';
+                                if (response.data.staging_exists) {
+                                    html += '<div class="stl-image-wrapper">';
+                                    html += '<img src="' + response.data.staging_url + '" alt="Staging: ' + response.data.file_name + '">';
+                                    html += '</div>';
+                                    html += '<p>File size: ' + formatBytes(response.data.staging_size) + '</p>';
+                                } else {
+                                    html += '<div class="stl-image-missing">Image does not exist in staging</div>';
+                                }
+                                html += '</div>';
+                                
+                                html += '</div>'; // Close stl-image-container
+                                html += '</div>'; // Close stl-image-comparison
+                                
+                                $fileDiffModal.find('.stl-modal-body').html(html);
+                                
+                                // Make the modal wider for image comparison
+                                $fileDiffModal.find('.stl-modal-content').addClass('stl-modal-wide');
                             } else {
-                                html += '<p>File exists only in production environment.</p>';
-                                html += '<p>File size: ' + formatBytes(response.data.production_size) + '</p>';
+                                // Show binary file info for non-image binary files
+                                var html = '<div class="stl-binary-info">';
+                                html += '<p>This is a binary file. Diff cannot be displayed.</p>';
+
+                                if (response.data.staging_exists && response.data.production_exists) {
+                                    html += '<p>File exists in both staging and production environments.</p>';
+                                    html += '<p>Staging file size: ' + formatBytes(response.data.staging_size) + '</p>';
+                                    html += '<p>Production file size: ' + formatBytes(response.data.production_size) + '</p>';
+                                } else if (response.data.staging_exists) {
+                                    html += '<p>File exists only in staging environment.</p>';
+                                    html += '<p>File size: ' + formatBytes(response.data.staging_size) + '</p>';
+                                } else {
+                                    html += '<p>File exists only in production environment.</p>';
+                                    html += '<p>File size: ' + formatBytes(response.data.production_size) + '</p>';
+                                }
+
+                                html += '</div>';
+
+                                $fileDiffModal.find('.stl-modal-body').html(html);
+                                
+                                // Reset modal width
+                                $fileDiffModal.find('.stl-modal-content').removeClass('stl-modal-wide');
                             }
-
-                            html += '</div>';
-
-                            $fileDiffModal.find('.stl-modal-body').html(html);
                         } else {
-                            // Show diff
+                            // Show diff for text files
                             $fileDiffModal.find('.stl-modal-body').html('<div class="stl-diff">' + response.data.diff + '</div>');
+                            
+                            // Reset modal width
+                            $fileDiffModal.find('.stl-modal-content').removeClass('stl-modal-wide');
                         }
                     } else {
                         $fileDiffModal.find('.stl-modal-body').html('<div class="notice notice-error"><p>' + response.data.message + '</p></div>');
+                        
+                        // Reset modal width
+                        $fileDiffModal.find('.stl-modal-content').removeClass('stl-modal-wide');
                     }
                 },
                 error: function() {
                     $fileDiffModal.find('.stl-modal-body').html('<div class="notice notice-error"><p>Error fetching file diff.</p></div>');
+                    
+                    // Reset modal width
+                    $fileDiffModal.find('.stl-modal-content').removeClass('stl-modal-wide');
                 }
             });
         });

@@ -118,6 +118,7 @@ class STL_File_Comparer {
 
         // Register AJAX handlers
         add_action( 'wp_ajax_stl_get_file_diff', array( $this, 'ajax_get_file_diff' ) );
+        add_action( 'wp_ajax_stl_view_file', array( $this, 'ajax_view_file' ) );
     }
 
     /**
@@ -289,14 +290,30 @@ class STL_File_Comparer {
             return false;
         }
         
+        // Check if file is an image
+        if ( $this->is_image_file( $file ) ) {
+            return array(
+                'is_binary' => true,
+                'is_image' => true,
+                'staging_exists' => $staging_exists,
+                'production_exists' => $production_exists,
+                'staging_size' => $staging_exists ? filesize( $staging_path ) : 0,
+                'production_size' => $production_exists ? filesize( $production_path ) : 0,
+                'staging_url' => $staging_exists ? $this->get_file_url( $file, 'staging' ) : '',
+                'production_url' => $production_exists ? $this->get_file_url( $file, 'production' ) : '',
+                'file_name' => basename( $file ),
+            );
+        }
+        
         // Get file contents
         $staging_content = $staging_exists ? file_get_contents( $staging_path ) : '';
         $production_content = $production_exists ? file_get_contents( $production_path ) : '';
         
-        // If file is binary, don't show diff
+        // If file is binary (but not image), don't show diff
         if ( $this->is_binary_file( $file ) ) {
             return array(
                 'is_binary' => true,
+                'is_image' => false,
                 'staging_exists' => $staging_exists,
                 'production_exists' => $production_exists,
                 'staging_size' => $staging_exists ? filesize( $staging_path ) : 0,
@@ -327,6 +344,7 @@ class STL_File_Comparer {
         
         return array(
             'is_binary' => false,
+            'is_image' => false,
             'staging_exists' => $staging_exists,
             'production_exists' => $production_exists,
             'diff' => $diff_table,
@@ -360,6 +378,75 @@ class STL_File_Comparer {
         }
         
         wp_send_json_success( $diff );
+    }
+    
+    /**
+     * AJAX handler for viewing files from staging
+     */
+    public function ajax_view_file() {
+        // Check nonce
+        if ( ! check_ajax_referer( 'stl_view_file_nonce', 'nonce', false ) ) {
+            wp_die( __( 'Security check failed.', 'staging2live' ) );
+        }
+        
+        // Check if user has permissions
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( __( 'You do not have permission to view this file.', 'staging2live' ) );
+        }
+        
+        // Get file path and environment
+        $file = isset( $_GET['file'] ) ? sanitize_text_field( wp_unslash( $_GET['file'] ) ) : '';
+        $env = isset( $_GET['env'] ) ? sanitize_text_field( wp_unslash( $_GET['env'] ) ) : 'production';
+        
+        if ( empty( $file ) ) {
+            wp_die( __( 'No file specified.', 'staging2live' ) );
+        }
+        
+        // Get the actual file path
+        $file_path = ( $env === 'staging' ) ? $this->staging_root . $file : $this->production_root . $file;
+        
+        // Check if file exists
+        if ( ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
+            wp_die( __( 'File not found or not readable.', 'staging2live' ) );
+        }
+        
+        // Get file extension
+        $extension = strtolower( pathinfo( $file, PATHINFO_EXTENSION ) );
+        
+        // Set content type based on file extension
+        switch ( $extension ) {
+            case 'jpg':
+            case 'jpeg':
+                $content_type = 'image/jpeg';
+                break;
+            case 'png':
+                $content_type = 'image/png';
+                break;
+            case 'gif':
+                $content_type = 'image/gif';
+                break;
+            case 'webp':
+                $content_type = 'image/webp';
+                break;
+            case 'svg':
+                $content_type = 'image/svg+xml';
+                break;
+            case 'ico':
+                $content_type = 'image/x-icon';
+                break;
+            case 'bmp':
+                $content_type = 'image/bmp';
+                break;
+            default:
+                $content_type = 'application/octet-stream';
+                break;
+        }
+        
+        // Output file contents
+        header( 'Content-Type: ' . $content_type );
+        header( 'Content-Length: ' . filesize( $file_path ) );
+        readfile( $file_path );
+        exit;
     }
     
     /**
@@ -470,6 +557,40 @@ class STL_File_Comparer {
         $base = str_replace('\\', '/', $base);
         
         return ltrim( str_replace( $base, '', $path ), '/' );
+    }
+    
+    /**
+     * Check if a file is an image based on extension
+     *
+     * @param string $file File path
+     * @return bool True if image, false otherwise
+     */
+    private function is_image_file( $file ) {
+        $image_extensions = array('jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'ico', 'svg');
+        $extension = strtolower( pathinfo( $file, PATHINFO_EXTENSION ) );
+        return in_array( $extension, $image_extensions );
+    }
+    
+    /**
+     * Get URL for a file in staging or production
+     *
+     * @param string $file Relative file path
+     * @param string $environment 'staging' or 'production'
+     * @return string URL to the file
+     */
+    private function get_file_url( $file, $environment = 'production' ) {
+        if ( $environment === 'staging' ) {
+            // For staging, we'll use a special endpoint to serve the file
+            $nonce = wp_create_nonce( 'stl_view_file_nonce' );
+            return admin_url( 'admin-ajax.php?action=stl_view_file&file=' . urlencode( $file ) . '&env=staging&nonce=' . $nonce );
+        } else {
+            // For production, we can use the site URL
+            if ( strpos( $file, 'wp-content/' ) === 0 ) {
+                return content_url( str_replace( 'wp-content/', '', $file ) );
+            } else {
+                return site_url( $file );
+            }
+        }
     }
     
     /**
