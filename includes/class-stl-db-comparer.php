@@ -52,7 +52,7 @@ class STL_DB_Comparer {
      * @var array
      */
     private $excluded_tables = array(
-        'options', // Often contains transients and cache data
+//        'options', // Often contains transients and cache data
         'usermeta', // User session data changes frequently
         'sessions', // Session data changes frequently
         'term_taxonomy', // Term taxonomy data changes frequently
@@ -290,6 +290,22 @@ class STL_DB_Comparer {
         
         return $grouped_changes;
     }
+
+	private function is_excluded_name($name): bool {
+		if (strpos($name, '_site_transient') === 0) {
+			return true;
+		}
+
+		if (strpos($name, '_transient') === 0) {
+			return true;
+		}
+
+		if ($name === 'wp_staging_user_roles') {
+			return true;
+		}
+
+		return false;
+	}
     
     /**
      * Compare a single table between production and staging
@@ -325,11 +341,15 @@ class STL_DB_Comparer {
         // Find new entries (in staging but not in production)
         $new_ids = array_diff( $staging_ids, $production_ids );
         foreach ( $new_ids as $id ) {
+			if ( $table_name == 'options' && ! empty($staging_row['option_name']) && $this->is_excluded_name($staging_row['option_name'])){
+				continue;
+			}
+
             $staging_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$staging_table} WHERE {$primary_key} = %s", $id ), ARRAY_A );
             
             $changes[] = array(
                 'id' => $id,
-                'type' => 'added',
+                'type' => 'added' . (!empty($staging_row['option_name']) ? " > {$staging_row['option_name']}" : ''),
                 'summary' => sprintf( __( 'New entry with ID %s', 'staging2live' ), $id ),
                 'details' => $staging_row,
             );
@@ -338,11 +358,14 @@ class STL_DB_Comparer {
         // Find deleted entries (in production but not in staging)
         $deleted_ids = array_diff( $production_ids, $staging_ids );
         foreach ( $deleted_ids as $id ) {
+			if ( $table_name == 'options' && ! empty($staging_row['option_name']) && $this->is_excluded_name($staging_row['option_name']))
+				continue;
+
             $production_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$production_table} WHERE {$primary_key} = %s", $id ), ARRAY_A );
             
             $changes[] = array(
                 'id' => $id,
-                'type' => 'deleted',
+                'type' => 'deleted'  . (!empty($staging_row['option_name']) ? " > {$staging_row['option_name']}" : ''),
                 'summary' => sprintf( __( 'Entry with ID %s deleted', 'staging2live' ), $id ),
                 'details' => $production_row,
             );
@@ -354,7 +377,13 @@ class STL_DB_Comparer {
         foreach ( $common_ids as $id ) {
             $production_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$production_table} WHERE {$primary_key} = %s", $id ), ARRAY_A );
             $staging_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$staging_table} WHERE {$primary_key} = %s", $id ), ARRAY_A );
-            
+
+			$option = '';
+			if (!empty($production_row['option_name']))
+				$option = $production_row['option_name'];
+			if (!empty($staging_row['option_name']))
+				$option = $staging_row['option_name'];
+
             $row_changes = array();
             
             foreach ( $columns as $column ) {
@@ -394,10 +423,13 @@ class STL_DB_Comparer {
             if ( ! empty( $row_changes ) ) {
                 // Get a human-readable name for this entry if possible
                 $entry_name = $this->get_entry_name( $table_name, $production_row );
-                
+
+				if ( $table_name == 'options' && ! empty($option) && $this->is_excluded_name($option))
+					continue;
+
                 $changes[] = array(
                     'id' => $id,
-                    'type' => 'modified',
+                    'type' => 'modified' . ($option != '' ? " > $option" : ''),
                     'summary' => $entry_name 
                         ? sprintf( __( 'Changes to "%s"', 'staging2live' ), $entry_name )
                         : sprintf( __( 'Entry with ID %s modified', 'staging2live' ), $id ),
