@@ -50,7 +50,8 @@ class STL_File_Handling {
 
 			// Skip directories that are not files and skip hidden files and directories (starting with a dot)
 			// Skip directories starting with "cache" but allow files like "cache.php"
-			if ( $item->isDot() || '.' === $item->getFilename()[0] || ( $item->isDir() && 0 === strpos( $item->getFilename(), 'cache' ) ) ) {
+			// But include the .htaccess file for copying
+			if ( $item->isDot() || ( '.' === $item->getFilename()[0] && '.htaccess' !== $item->getFilename()  ) || ( $item->isDir() && 0 === strpos( $item->getFilename(), 'cache' ) ) ) {
 				continue;
 			}
 
