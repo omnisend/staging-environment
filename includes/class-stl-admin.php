@@ -38,7 +38,7 @@ class STL_Admin {
 
         // Disable emails for staging environments.
         if ( defined( 'WP_ENVIRONMENT_TYPE' ) && 'staging' === WP_ENVIRONMENT_TYPE ) {
-            add_filter('pre_wp_mail', '__return_false' );
+            add_filter('pre_wp_mail', '__return_false', PHP_INT_MAX );
         }
     }
 
