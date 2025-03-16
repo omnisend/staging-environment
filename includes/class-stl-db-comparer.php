@@ -419,6 +419,8 @@ class STL_DB_Comparer {
         $post_groups = array();
         $attachment_to_post_mapping = array();
         $child_to_parent_mapping = array();
+        $attachment_ids = array(); // Store all attachment IDs for later reference
+        $post_to_attachment_mapping = array(); // Map posts to their attachments
         
         // First pass: identify posts with parent relationships
         if (isset($changes['posts'])) {
@@ -430,6 +432,11 @@ class STL_DB_Comparer {
                     ? $change['details']['post_parent'] 
                     : null;
                 
+                // If this is an attachment, track its ID for later
+                if ($post_type === 'attachment') {
+                    $attachment_ids[$post_id] = true;
+                }
+                
                 // If this post has a parent, record the relationship
                 if ($post_parent) {
                     // If it's an attachment, add to attachment mapping
@@ -438,6 +445,12 @@ class STL_DB_Comparer {
                             $attachment_to_post_mapping[$post_parent] = array();
                         }
                         $attachment_to_post_mapping[$post_parent][] = $post_id;
+                        
+                        // Also track parent to attachment mapping
+                        if (!isset($post_to_attachment_mapping[$post_parent])) {
+                            $post_to_attachment_mapping[$post_parent] = array();
+                        }
+                        $post_to_attachment_mapping[$post_parent][] = $post_id;
                     }
                     
                     // Also add to the general child-to-parent mapping (for all post types)
@@ -614,19 +627,23 @@ class STL_DB_Comparer {
             }
         }
         
-        // Second pass: Find featured images from postmeta
+        // Second pass: Find all related metadata and group it
         if (isset($changes['postmeta'])) {
-            foreach ($changes['postmeta'] as $change) {
-                // Check if this is a _thumbnail_id meta entry (WordPress featured image)
+            foreach ($changes['postmeta'] as $key => $change) {
+                // Skip if we don't have post_id in the details
+                if (!isset($change['details']['post_id'])) {
+                    continue;
+                }
+                
+                $meta_post_id = $change['details']['post_id'];
+                $is_grouped = false;
+                
+                // Handle featured images (thumbnail metadata)
                 if (isset($change['details']['meta_key']) && $change['details']['meta_key'] === '_thumbnail_id') {
-                    $post_id = null;
+                    $post_id = $meta_post_id;
                     $thumbnail_id = null;
                     
-                    // Get the post ID and thumbnail ID
-                    if (isset($change['details']['post_id'])) {
-                        $post_id = $change['details']['post_id'];
-                    }
-                    
+                    // Get the thumbnail ID
                     if (isset($change['details']['meta_value'])) {
                         $thumbnail_id = $change['details']['meta_value'];
                     }
@@ -659,16 +676,124 @@ class STL_DB_Comparer {
                                     break;
                                 }
                             }
+                            
+                            // Add this meta entry to the post group
+                            if (!isset($post_groups[$post_group_key]['changes']['postmeta'])) {
+                                $post_groups[$post_group_key]['changes']['postmeta'] = array();
+                            }
+                            $post_groups[$post_group_key]['changes']['postmeta'][] = $change;
+                            $is_grouped = true;
                         }
                     }
+                }
+                
+                // Check if the postmeta belongs to a post that's in a group
+                if (!$is_grouped) {
+                    $post_group_key = 'post_' . $meta_post_id;
+                    if (isset($post_groups[$post_group_key])) {
+                        if (!isset($post_groups[$post_group_key]['changes']['postmeta'])) {
+                            $post_groups[$post_group_key]['changes']['postmeta'] = array();
+                        }
+                        $post_groups[$post_group_key]['changes']['postmeta'][] = $change;
+                        $is_grouped = true;
+                    }
+                }
+                
+                // Check if the postmeta belongs to an attachment that's part of a group
+                if (!$is_grouped && isset($attachment_ids[$meta_post_id])) {
+                    // This metadata belongs to an attachment
+                    $found_in_group = false;
+                    
+                    // Check all post groups to see if this attachment is part of any group
+                    foreach ($post_groups as $group_key => $group) {
+                        if (isset($group['changes']['attachments'])) {
+                            foreach ($group['changes']['attachments'] as $attachment) {
+                                if ($attachment['id'] == $meta_post_id) {
+                                    // Found the attachment in this group
+                                    if (!isset($post_groups[$group_key]['changes']['attachment_meta'])) {
+                                        $post_groups[$group_key]['changes']['attachment_meta'] = array();
+                                    }
+                                    $post_groups[$group_key]['changes']['attachment_meta'][] = $change;
+                                    $found_in_group = true;
+                                    $is_grouped = true;
+                                    break 2; // Break both loops
+                                }
+                            }
+                        }
+                    }
+                    
+                    // If not found in any group but this is an attachment metadata
+                    // Create a group for this attachment if it doesn't exist
+                    if (!$found_in_group) {
+                        $attachment_group_key = 'post_' . $meta_post_id;
+                        
+                        if (!isset($post_groups[$attachment_group_key])) {
+                            // Try to find the attachment details in posts changes
+                            $attachment_details = null;
+                            foreach ($changes['posts'] as $post_change) {
+                                if ($post_change['id'] == $meta_post_id) {
+                                    $attachment_details = $post_change;
+                                    break;
+                                }
+                            }
+                            
+                            if ($attachment_details) {
+                                $attachment_title = '';
+                                
+                                // Get a title for this group
+                                if ($attachment_details['type'] === 'added' && isset($attachment_details['details']['post_title'])) {
+                                    $attachment_title = $attachment_details['details']['post_title'];
+                                } elseif ($attachment_details['type'] === 'deleted' && isset($attachment_details['details']['post_title'])) {
+                                    $attachment_title = $attachment_details['details']['post_title'];
+                                } elseif ($attachment_details['type'] === 'modified') {
+                                    $attachment_title = $attachment_details['summary'];
+                                }
+                                
+                                $post_groups[$attachment_group_key] = array(
+                                    'group_id' => $attachment_group_key,
+                                    'post_id' => $meta_post_id,
+                                    'title' => $attachment_title ? $attachment_title : sprintf(__('Media: %s', 'staging2live'), $meta_post_id),
+                                    'type' => $attachment_details['type'],
+                                    'changes' => array(),
+                                );
+                                
+                                // Add the attachment to its own group
+                                $post_groups[$attachment_group_key]['changes']['posts'][] = $attachment_details;
+                            } else {
+                                // We couldn't find attachment details, create minimal group
+                                $post_groups[$attachment_group_key] = array(
+                                    'group_id' => $attachment_group_key,
+                                    'post_id' => $meta_post_id,
+                                    'title' => sprintf(__('Media: %s', 'staging2live'), $meta_post_id),
+                                    'type' => 'modified', // Default to modified
+                                    'changes' => array(),
+                                );
+                            }
+                        }
+                        
+                        // Add this meta entry to the attachment group
+                        if (!isset($post_groups[$attachment_group_key]['changes']['postmeta'])) {
+                            $post_groups[$attachment_group_key]['changes']['postmeta'] = array();
+                        }
+                        $post_groups[$attachment_group_key]['changes']['postmeta'][] = $change;
+                        $is_grouped = true;
+                    }
+                }
+                
+                // If the meta hasn't been grouped yet, keep it in the original table changes
+                if (!$is_grouped) {
+                    if (!isset($grouped['postmeta'])) {
+                        $grouped['postmeta'] = array();
+                    }
+                    $grouped['postmeta'][] = $change;
                 }
             }
         }
         
-        // Third pass: associate related content with post groups
+        // Third pass: associate remaining related content with post groups
         foreach ($changes as $table => $table_changes) {
-            // Skip posts table as we've already processed it
-            if ($table === 'posts') {
+            // Skip the tables we've already processed
+            if ($table === 'posts' || $table === 'postmeta') {
                 continue;
             }
             
@@ -677,9 +802,10 @@ class STL_DB_Comparer {
                 $group_assigned = false;
                 
                 // Try to associate with a post based on table and columns
-                if ($table === 'postmeta' && isset($change['details']['post_id'])) {
-                    $associated_post_id = $change['details']['post_id'];
-                } elseif ($table === 'comments' && isset($change['details']['comment_post_ID'])) {
+                if ($table === 'term_relationships' && isset($change['details']['object_id'])) {
+                    // For term_relationships, the object_id is the post ID
+                    $associated_post_id = $change['details']['object_id'];
+                } else if ($table === 'comments' && isset($change['details']['comment_post_ID'])) {
                     $associated_post_id = $change['details']['comment_post_ID'];
                 } elseif ($table === 'commentmeta' && isset($change['details']['comment_id'])) {
                     // Try to find the associated post through the comment
@@ -700,6 +826,26 @@ class STL_DB_Comparer {
                         }
                         $post_groups[$group_key]['changes'][$table][] = $change;
                         $group_assigned = true;
+                    }
+                    
+                    // If change is associated with an attachment that's in a group
+                    if (!$group_assigned && isset($attachment_ids[$associated_post_id])) {
+                        // Check all post groups to see if this attachment is in any of them
+                        foreach ($post_groups as $parent_group_key => $parent_group) {
+                            if (isset($parent_group['changes']['attachments'])) {
+                                foreach ($parent_group['changes']['attachments'] as $attachment) {
+                                    if ($attachment['id'] == $associated_post_id) {
+                                        // Found the attachment in this group
+                                        if (!isset($post_groups[$parent_group_key]['changes'][$table])) {
+                                            $post_groups[$parent_group_key]['changes'][$table] = array();
+                                        }
+                                        $post_groups[$parent_group_key]['changes'][$table][] = $change;
+                                        $group_assigned = true;
+                                        break 2; // Break both loops
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 
