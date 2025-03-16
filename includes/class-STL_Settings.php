@@ -42,7 +42,7 @@ if ( ! class_exists('STL_Settings') ) {
 
 		public function add_plugin_page(){
 			if (stl_staging_exists()) {
-                return;
+				return;
 			}
 			add_menu_page(
 				__( 'Staging2Live', 'staging2live' ),
@@ -54,14 +54,14 @@ if ( ! class_exists('STL_Settings') ) {
 				90
 			);
 
-            add_submenu_page(
-                'staging2live',
-                'Sync',
-                'Sync',
-                'manage_options',
-                'staging2live',
-                array( $this, 'create_admin_page' )
-            );
+			add_submenu_page(
+				'staging2live',
+				'Sync',
+				'Sync',
+				'manage_options',
+				'staging2live',
+				array( $this, 'create_admin_page' )
+			);
 
 			add_action( 'admin_init', array( $this, 'options_init') );
 
@@ -194,7 +194,7 @@ if ( ! class_exists('STL_Settings') ) {
 			if ( !empty( $description) )
 				echo '<p class="description">' . $description . '</p>';
 
-            echo '<div id="response"></div>';
+			echo '<div id="response"></div>';
 
 		}
 
@@ -280,6 +280,8 @@ if ( ! class_exists('STL_Settings') ) {
 		 */
 		public function ajax_create_staging() {
 
+            global $wpdb;
+
 			// check if nonce is valid
 			if ( ! isset( $_POST['nonce'] ) || ! wp_verify_nonce( $_POST['nonce'], 'stl_nonce' ) ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'Invalid nonce.', 'staging2live' ) ) );
@@ -295,7 +297,9 @@ if ( ! class_exists('STL_Settings') ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'Class is missing. Please contact plugin author.', 'staging2live' ) ) );
 			}
 
-			$staging_name = empty( $this->options_general[ 'staging_name' ] ) ? STL_STAGING_NAME_DEFAULT : $this->options_general[ 'staging_name' ];
+			$staging_name   = empty( $this->options_general[ 'staging_name' ] ) ? STL_STAGING_NAME_DEFAULT : $this->options_general[ 'staging_name' ];
+			$live_domain    = untrailingslashit( STL_General::get_site_url() );
+			$staging_domain = untrailingslashit( self::get_staging_domain() );
 
 			// Start the staging creation process
 			$database = new STL_Database( $staging_name );
@@ -306,7 +310,15 @@ if ( ! class_exists('STL_Settings') ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'Error while duplicating the database.', 'staging2live' ) ) );
 			}
 
-			// 2. Delete previous staging environment
+			// 2. Replace URL from live to staging
+			if( ! class_exists( 'STL_URL_Replacer') ) {
+				include_once STL_PLUGIN_PATH . 'includes/class-STL_URL_Replacer.php';
+			}
+            $staging_prefix = $wpdb->prefix . $staging_name;
+			$replacer       = new STL_URL_Replacer();
+			$replacer->replace_url_in_database( $live_domain, $staging_domain, $staging_prefix );
+
+			// 3. Delete previous staging environment
 			$file_lister = new STL_File_Handling();
 			$file_lister->delete_staging_files();
 
@@ -318,14 +330,11 @@ if ( ! class_exists('STL_Settings') ) {
 				// Insert file data into the database
 				$file_lister->insert_files_into_database();
 			}
-
-			// 3. Copy files to the staging environment
+			// 5. Copy files to the staging environment
 			$file_lister->copy_files_to_staging();
-			// 4. Copy files to the staging environment
 
-			// 5. Finish and generate URL
-			$staging_domain = trailingslashit( STL_General::get_site_url() ) . trailingslashit( $staging_name );
-			wp_send_json_success( array( 'message' => sprintf( esc_html__( 'Staging site successfully created. The URL is %s', 'staging2live' ), '<a href="' . $staging_domain . '" target="_blank">' . $staging_domain . '</a>' ) ) );
+			// 6. Finish and generate URL
+			wp_send_json_success( array( 'message' => sprintf( esc_html__( 'Staging site successfully created. The URL is %s', 'staging2live' ), '<a href="' . trailingslashit( $staging_domain ) . '" target="_blank">' . trailingslashit( $staging_domain ) . '</a>' ) ) );
 		}
 
 	}
