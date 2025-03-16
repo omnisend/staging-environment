@@ -1,7 +1,7 @@
 ---
 name: Feature request
 about: Suggest an idea for this project
-title: ISBAT ...
+title: I would love it if this plugin could...
 labels: "[Priority] Low, [Type] Enhancement"
 assignees: ''
 ---

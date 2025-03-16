@@ -1,7 +1,7 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: ISBAT ...
+title: Something doesn't work as expected
 labels: "[Priority] Low, [Type] Bug"
 assignees: ''
 ---
