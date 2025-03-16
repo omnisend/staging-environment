@@ -69,6 +69,7 @@ class STL_File_Comparer {
         'wp-content/upgrade/',
         'wp-content/uploads/wp-staging/',
         '.htaccess',
+        'robots.txt',
         '.DS_Store',
         'error_log',
         'php_errorlog',
@@ -536,7 +537,7 @@ class STL_File_Comparer {
         
         // Check custom exclusions
         foreach ( $this->exclusions as $exclusion ) {
-            if ( 0 === strpos( $file, $exclusion ) || fnmatch( $exclusion, $file ) ) {
+            if ( false !== strpos( $file, $exclusion ) || fnmatch( $exclusion, $file ) ) {
                 return true;
             }
         }
