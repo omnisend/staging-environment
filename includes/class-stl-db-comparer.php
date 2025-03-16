@@ -37,7 +37,7 @@ class STL_DB_Comparer {
      *
      * @var string
      */
-    private $staging_prefix = 'wp_staging';
+    private $staging_prefix = 'wp_staging_';
 
     /**
      * Debug mode
