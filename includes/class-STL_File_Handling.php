@@ -120,8 +120,6 @@ class STL_File_Handling {
 			if ( 0 == $existing_file ) {
 
 				$wpdb->insert(
-					$this->table_name,
-					[
 					$table_name,
 					array (
 						'file_path' => $file[ 'file_path' ], // The file path
@@ -133,7 +131,6 @@ class STL_File_Handling {
 		}
 	}
 
-}
 	/**
 	 * Copies all files found in the array $this->files to a folder named by $this->table_staging_name.
 	 */
