@@ -33,8 +33,13 @@ class STL_Admin {
             return;
         }
 
-		add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
-		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
+        add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
+        add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
+
+        // Disable emails for staging environments.
+        if ( defined( 'WP_ENVIRONMENT_TYPE' ) && 'staging' === WP_ENVIRONMENT_TYPE ) {
+            add_filter('pre_wp_mail', '__return_false' );
+        }
     }
 
     /**
