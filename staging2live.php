@@ -10,6 +10,14 @@
  * License:     GPLv2 or later (license.txt)
  */
 
+// Exit if accessed directly
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+if ( !defined('STL_CORE_PLUGIN_URL' ) )
+	define( 'STL_CORE_PLUGIN_URL', trailingslashit( plugin_dir_url( __FILE__ ) ) );
+
 if ( !defined('STL_PLUGIN_URL' ) )
 	define( 'STL_PLUGIN_URL', trailingslashit( plugin_dir_url( __FILE__ ) ) );
 

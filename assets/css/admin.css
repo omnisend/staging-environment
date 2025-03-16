@@ -1,0 +1,218 @@
+/**
+ * Staging2Live Admin Styles
+ */
+
+/* Tabs */
+.stl-tabs {
+    margin-top: 20px;
+}
+
+.stl-tabs-nav {
+    display: flex;
+    border-bottom: 1px solid #ccc;
+    margin: 0;
+    padding: 0;
+}
+
+.stl-tabs-nav li {
+    margin: 0 4px 0 0;
+    padding: 0;
+}
+
+.stl-tabs-nav a {
+    display: block;
+    padding: 10px 15px;
+    background: #f1f1f1;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    text-decoration: none;
+    color: #444;
+    font-weight: 600;
+}
+
+.stl-tabs-nav a:hover {
+    background: #e5e5e5;
+}
+
+.stl-tabs-nav a.active {
+    background: #fff;
+    border-bottom: 1px solid #fff;
+    margin-bottom: -1px;
+}
+
+.stl-tab-content {
+    display: none;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-top: none;
+    background: #fff;
+}
+
+.stl-tab-content.active {
+    display: block;
+}
+
+/* Tables */
+.stl-changes-table {
+    margin-top: 20px;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.stl-changes-table th {
+    text-align: left;
+    padding: 10px;
+}
+
+.stl-changes-table td {
+    padding: 10px;
+    vertical-align: middle;
+}
+
+/* Modal */
+.stl-modal {
+    display: none;
+    position: fixed;
+    z-index: 100000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.stl-modal-content {
+    background-color: #fff;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    width: 80%;
+    max-width: 800px;
+    position: relative;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.stl-modal-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.stl-modal-title {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.stl-modal-body {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+/* Diff display */
+.stl-diff {
+    font-family: monospace;
+    white-space: pre-wrap;
+    margin: 20px 0;
+}
+
+.stl-diff table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.stl-diff th {
+    background: #f1f1f1;
+    padding: 5px 10px;
+    text-align: left;
+}
+
+.stl-diff td {
+    padding: 2px 10px;
+    border: 1px solid #eee;
+    vertical-align: top;
+}
+
+.stl-diff .deleted {
+    background-color: #ffecec;
+}
+
+.stl-diff .inserted {
+    background-color: #eaffea;
+}
+
+.stl-diff .changed {
+    background-color: #fffbe5;
+}
+
+/* Action buttons */
+.stl-actions {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.stl-binary-info {
+    background: #f9f9f9;
+    padding: 10px;
+    border: 1px solid #eee;
+    margin: 10px 0;
+}
+
+/* Database diff display */
+.stl-db-diff-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.stl-db-diff-table th {
+    background: #f1f1f1;
+    padding: 8px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+.stl-db-diff-table td {
+    padding: 8px;
+    border: 1px solid #ddd;
+    vertical-align: top;
+}
+
+.stl-db-diff-table .field-name {
+    font-weight: bold;
+    width: 20%;
+}
+
+.stl-db-diff-table .production-value {
+    width: 40%;
+    background-color: #ffecec;
+}
+
+.stl-db-diff-table .staging-value {
+    width: 40%;
+    background-color: #eaffea;
+}
+
+/* Loading indicator */
+.stl-loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-left: 10px;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top-color: #007cba;
+    animation: stl-spin 1s linear infinite;
+    vertical-align: middle;
+}
+
+@keyframes stl-spin {
+    to {
+        transform: rotate(360deg);
+    }
+} 
