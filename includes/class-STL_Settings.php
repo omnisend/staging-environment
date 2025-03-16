@@ -298,8 +298,6 @@ if ( ! class_exists('STL_Settings') ) {
 			}
 
 			$staging_name   = empty( $this->options_general[ 'staging_name' ] ) ? STL_STAGING_NAME_DEFAULT : $this->options_general[ 'staging_name' ];
-			$live_domain    = untrailingslashit( STL_General::get_site_url() );
-			$staging_domain = untrailingslashit( self::get_staging_domain() );
 
 			// Start the staging creation process
 			$database = new STL_Database( $staging_name );
@@ -310,15 +308,7 @@ if ( ! class_exists('STL_Settings') ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'Error while duplicating the database.', 'staging2live' ) ) );
 			}
 
-			// 2. Replace URL from live to staging
-			if( ! class_exists( 'STL_URL_Replacer') ) {
-				include_once STL_PLUGIN_PATH . 'includes/class-STL_URL_Replacer.php';
-			}
-            $staging_prefix = $wpdb->prefix . $staging_name;
-			$replacer       = new STL_URL_Replacer();
-			$replacer->replace_url_in_database( $live_domain, $staging_domain, $staging_prefix );
-
-			// 3. Delete previous staging environment
+			// 2. Delete previous staging environment
 			$file_lister = new STL_File_Handling();
 			$file_lister->delete_staging_files();
 
@@ -330,11 +320,11 @@ if ( ! class_exists('STL_Settings') ) {
 				// Insert file data into the database
 				$file_lister->insert_files_into_database();
 			}
-			// 5. Copy files to the staging environment
+			// 4. Copy files to the staging environment
 			$file_lister->copy_files_to_staging();
 
-			// 6. Finish and generate URL
-			wp_send_json_success( array( 'message' => sprintf( esc_html__( 'Staging site successfully created. The URL is %s', 'staging2live' ), '<a href="' . trailingslashit( $staging_domain ) . '" target="_blank">' . trailingslashit( $staging_domain ) . '</a>' ) ) );
+			// 5. Finish and generate URL
+			wp_send_json_success( array( 'message' => sprintf( esc_html__( 'Staging site successfully created. The URL is %s', 'staging2live' ), '<a href="' . self::get_staging_domain() . '" target="_blank">' . self::get_staging_domain() . '</a>' ) ) );
 		}
 
 	}
