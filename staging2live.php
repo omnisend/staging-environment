@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: Staging2Live
- * Description: Core feature for Studenten Power Berlin
+ * Description: Seamlessly migrate your changes between environments
  * Author:      Staging2Live Team
  * Author URI:  https://github.com/omnisend/staging2live
  * Version:     0.0.1
