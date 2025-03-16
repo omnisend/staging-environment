@@ -73,14 +73,14 @@ class STL_Admin {
 
         wp_enqueue_style(
             'staging2live-admin',
-            STL_CORE_PLUGIN_URL . 'assets/css/admin.css',
+            STL_PLUGIN_URL . 'assets/css/admin.css',
             array(),
             stl_get_plugin_version()
         );
 
         wp_enqueue_script(
             'staging2live-admin',
-            STL_CORE_PLUGIN_URL . 'assets/js/admin.js',
+            STL_PLUGIN_URL . 'assets/js/admin.js',
             array( 'jquery' ),
             stl_get_plugin_version(),
             true

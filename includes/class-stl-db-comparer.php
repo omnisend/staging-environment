@@ -37,7 +37,7 @@ class STL_DB_Comparer {
      *
      * @var string
      */
-    private $staging_prefix = 'wpstg0_';
+    private $staging_prefix = 'wp_staging';
 
     /**
      * Debug mode
@@ -77,8 +77,57 @@ class STL_DB_Comparer {
     private function __construct() {
         global $wpdb;
 
+        // Ensure we have the correct staging prefix
+        $this->detect_staging_prefix();
+        
         // Register AJAX handlers
         add_action( 'wp_ajax_stl_get_db_diff', array( $this, 'ajax_get_db_diff' ) );
+    }
+
+    /**
+     * Detect the staging database prefix by looking at existing tables
+     */
+    private function detect_staging_prefix() {
+        global $wpdb;
+        
+        // Log the initial staging prefix
+        $this->log_message("Initial staging prefix: '{$this->staging_prefix}'");
+        
+        // Try to find tables with the current prefix
+        $tables_count = $wpdb->get_var("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name LIKE '{$this->staging_prefix}%'");
+        
+        if ($tables_count > 0) {
+            $this->log_message("Found {$tables_count} tables with prefix '{$this->staging_prefix}'");
+            return; // Current prefix is working
+        }
+        
+        // Try alternative prefixes
+        $alternative_prefixes = array(
+            'wp_staging_',
+            'wpstg_',
+            'wpstg0_',
+            'wp_stg_',
+            'wp_staging',
+            'wpstg',
+            'wpstg0'
+        );
+        
+        foreach ($alternative_prefixes as $prefix) {
+            if ($prefix === $this->staging_prefix) {
+                continue; // Skip if it's the same as current
+            }
+            
+            $count = $wpdb->get_var("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name LIKE '{$prefix}%'");
+            
+            if ($count > 0) {
+                $this->log_message("Found alternative staging prefix: '{$prefix}' with {$count} tables");
+                $this->staging_prefix = $prefix;
+                return;
+            }
+        }
+        
+        // If we get here, we couldn't find a matching prefix
+        $this->log_message("Warning: Could not auto-detect staging table prefix. Using default: '{$this->staging_prefix}'");
     }
 
     /**
@@ -172,8 +221,16 @@ class STL_DB_Comparer {
 
         $changes = array();
         
+        // Log the prefixes being used
+        $this->log_message("Using production prefix: '{$this->production_prefix}' and staging prefix: '{$this->staging_prefix}'");
+        
         // Get all tables in the database
         $tables = $wpdb->get_results( "SHOW TABLES LIKE '{$this->production_prefix}%'", ARRAY_N );
+        $this->log_message("Found " . count($tables) . " production tables");
+        
+        // Check for staging tables too
+        $staging_tables_count = $wpdb->get_var("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name LIKE '{$this->staging_prefix}%'");
+        $this->log_message("Found approximately $staging_tables_count staging tables with prefix '{$this->staging_prefix}%'");
         
         foreach ( $tables as $table ) {
             $production_table = $table[0];
@@ -182,8 +239,12 @@ class STL_DB_Comparer {
             // Extract the table name without prefix
             $table_name = str_replace( $this->production_prefix, '', $production_table );
             
+            // Log tables being compared
+            $this->log_message("Comparing tables - Production: '$production_table', Staging: '$staging_table'");
+            
             // Skip excluded tables
             if ( in_array( $table_name, $this->excluded_tables, true ) ) {
+                $this->log_message("Skipping excluded table: $table_name");
                 continue;
             }
             
@@ -191,7 +252,21 @@ class STL_DB_Comparer {
             $staging_table_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $staging_table ) );
             
             if ( ! $staging_table_exists ) {
-                continue;
+                $this->log_message("Staging table does not exist: $staging_table");
+                
+                // Try with underscore after prefix
+                $alternate_staging_table = $this->staging_prefix . '_' . $table_name;
+                $alternate_exists = $wpdb->get_var( $wpdb->prepare( "SHOW TABLES LIKE %s", $alternate_staging_table ) );
+                
+                if ($alternate_exists) {
+                    $this->log_message("Found alternate staging table: $alternate_staging_table");
+                    $staging_table = $alternate_staging_table;
+                    $staging_table_exists = true;
+                } else {
+                    continue;
+                }
+            } else {
+                $this->log_message("Staging table exists: $staging_table");
             }
             
             // Get changes for this table
@@ -199,6 +274,9 @@ class STL_DB_Comparer {
             
             if ( ! empty( $table_changes ) ) {
                 $changes[ $table_name ] = $table_changes;
+                $this->log_message("Found " . count($table_changes) . " changes in table: $table_name");
+            } else {
+                $this->log_message("No changes found in table: $table_name");
             }
         }
         

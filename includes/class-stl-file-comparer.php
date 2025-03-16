@@ -73,7 +73,7 @@ class STL_File_Comparer {
         'error_log',
         'php_errorlog',
         'wp-content/plugins/staging2live/', // Ignore self
-        'wpstg0/', // Ignore staging directory itself
+        'staging/', // Ignore staging directory itself
     );
 
     /**
@@ -101,7 +101,7 @@ class STL_File_Comparer {
     
         if (empty($this->staging_root)) {
             // Fallback to hardcoded path if detection fails
-            $this->staging_root = $this->normalize_path(ABSPATH . '../wpstg0/');
+            $this->staging_root = $this->normalize_path(ABSPATH . '../staging/');
         }
         
         // Extract staging directory name for exclusion
@@ -140,18 +140,12 @@ class STL_File_Comparer {
         // Common staging directory patterns to check
         $possible_dirs = array(
             // WP Staging plugin format - parent directory
-            $this->normalize_path(dirname(ABSPATH) . '/wpstg0/'),
-            $this->normalize_path(dirname(ABSPATH) . '/wp-staging/'),
             $this->normalize_path(dirname(ABSPATH) . '/staging/'),
             
             // Alternate common formats - peer directory
-            $this->normalize_path(dirname(ABSPATH) . '/../wpstg0/'),
-            $this->normalize_path(dirname(ABSPATH) . '/../wp-staging/'),
             $this->normalize_path(dirname(ABSPATH) . '/../staging/'),
             
             // Check for subdirectory cases
-            $this->normalize_path(ABSPATH . 'wpstg0/'),
-            $this->normalize_path(ABSPATH . 'wp-staging/'),
             $this->normalize_path(ABSPATH . 'staging/'),
         );
         

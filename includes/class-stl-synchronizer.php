@@ -51,7 +51,7 @@ class STL_Synchronizer {
      *
      * @var string
      */
-    private $staging_prefix = 'wpstg0_';
+    private $staging_prefix = 'wp_staging_';
 
     /**
      * File comparer instance
@@ -72,7 +72,7 @@ class STL_Synchronizer {
      */
     private function __construct() {
         $this->production_root = ABSPATH;
-        $this->staging_root = ABSPATH . 'wpstg0/'; // Assuming staging is in wpstg0 directory
+        $this->staging_root = ABSPATH . 'staging/'; // Assuming staging is in staging directory
         
         $this->file_comparer = STL_File_Comparer::get_instance();
         $this->db_comparer = STL_DB_Comparer::get_instance();
