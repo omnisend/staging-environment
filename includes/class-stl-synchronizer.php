@@ -188,7 +188,51 @@ class STL_Synchronizer {
             $table = $table_data['table'];
             $id = $table_data['id'];
             
-            // Handle special case for content groups
+            // Handle special case for post_type_groups (new structure)
+            if (isset($db_changes['post_type_groups'])) {
+                $found_in_post_type_groups = false;
+                
+                // Check each post type group
+                foreach ($db_changes['post_type_groups'] as $post_type => $groups) {
+                    // For each group within this post type
+                    foreach ($groups as $group) {
+                        // Check each section in the group
+                        foreach ($group['changes'] as $section_table => $section_changes) {
+                            // If this is the table we're looking for
+                            if ($section_table === $table || 
+                               ($table === 'posts' && ($section_table === 'attachments' || $section_table === 'child_posts')) ||
+                               ($table === 'postmeta' && $section_table === 'attachment_meta')) {
+                                
+                                // For attachments, child_posts and attachment_meta, map to the actual table
+                                $actual_table = $table;
+                                if ($section_table === 'attachments' || $section_table === 'child_posts') {
+                                    $actual_table = 'posts';
+                                } else if ($section_table === 'attachment_meta') {
+                                    $actual_table = 'postmeta';
+                                }
+                                
+                                // Find the change in this section
+                                foreach ($section_changes as $section_change) {
+                                    if ($section_change['id'] == $id) {
+                                        // Found the change
+                                        $change = $section_change;
+                                        $found_in_post_type_groups = true;
+                                        break 4; // Exit all loops
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if ($found_in_post_type_groups) {
+                    // Process the found change
+                    $result = $this->process_db_change($table, $id, $change, $results);
+                    continue; // Move to the next table_data
+                }
+            }
+            
+            // Handle special case for content groups (legacy structure)
             if (isset($db_changes['content_groups'])) {
                 $found_in_group = false;
                 
@@ -229,7 +273,7 @@ class STL_Synchronizer {
                 }
             }
             
-            // If we get here, either there are no content groups or the change wasn't found in any group
+            // If we get here, the change wasn't found in post_type_groups or content_groups
             // Check in regular table changes
             if (isset($db_changes[$table])) {
                 $change = null;

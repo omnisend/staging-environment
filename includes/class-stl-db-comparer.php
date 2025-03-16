@@ -421,6 +421,7 @@ class STL_DB_Comparer {
         $child_to_parent_mapping = array();
         $attachment_ids = array(); // Store all attachment IDs for later reference
         $post_to_attachment_mapping = array(); // Map posts to their attachments
+        $post_type_groups = array(); // New array to hold post type groups
         
         // First pass: identify posts with parent relationships
         if (isset($changes['posts'])) {
@@ -861,10 +862,30 @@ class STL_DB_Comparer {
         
         // Merge the post groups into the final result
         foreach ($post_groups as $group) {
-            if (!isset($grouped['content_groups'])) {
-                $grouped['content_groups'] = array();
+            // Get the post type from the first post in the group's changes
+            $post_type = 'unknown';
+            if (isset($group['changes']['posts']) && !empty($group['changes']['posts'])) {
+                $first_post = $group['changes']['posts'][0];
+                $post_type = isset($first_post['details']['post_type']) ? $first_post['details']['post_type'] : 'unknown';
+            } elseif (isset($group['changes']['child_posts']) && !empty($group['changes']['child_posts'])) {
+                $first_post = $group['changes']['child_posts'][0];
+                $post_type = isset($first_post['details']['post_type']) ? $first_post['details']['post_type'] : 'unknown';
+            } elseif (isset($group['changes']['attachments']) && !empty($group['changes']['attachments'])) {
+                $post_type = 'attachment';
             }
-            $grouped['content_groups'][] = $group;
+            
+            // Initialize post type group if it doesn't exist
+            if (!isset($post_type_groups[$post_type])) {
+                $post_type_groups[$post_type] = array();
+            }
+            
+            // Add this group to the appropriate post type group
+            $post_type_groups[$post_type][] = $group;
+        }
+        
+        // Now add the post type groups to the final result
+        if (!empty($post_type_groups)) {
+            $grouped['post_type_groups'] = $post_type_groups;
         }
         
         return $grouped;
