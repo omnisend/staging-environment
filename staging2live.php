@@ -1,13 +1,5 @@
 <?php
 /**
- * Staging2Live
- *
- * @package Staging2Live
- * @subpackage Main
- * @since 1.0.0
- */
-
-/**
  * Plugin Name: Staging2Live
  * Description: Core feature for Studenten Power Berlin
  * Author:      Staging2Live Team
@@ -26,8 +18,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 if ( !defined('STL_CORE_PLUGIN_URL' ) )
 	define( 'STL_CORE_PLUGIN_URL', trailingslashit( plugin_dir_url( __FILE__ ) ) );
 
-if ( !defined('STL_CORE_PLUGIN_PATH' ) )
-	define( 'STL_CORE_PLUGIN_PATH', trailingslashit( plugin_dir_path( __FILE__ ) ) );
+if ( !defined('STL_PLUGIN_URL' ) )
+	define( 'STL_PLUGIN_URL', trailingslashit( plugin_dir_url( __FILE__ ) ) );
+
+if ( !defined('STL_PLUGIN_PATH' ) )
+	define( 'STL_PLUGIN_PATH', trailingslashit( plugin_dir_path( __FILE__ ) ) );
+
+if ( !defined('STL_STAGING_NAME_DEFAULT' ) )
+	define( 'STL_STAGING_NAME_DEFAULT', 'staging' );
+
 /**
  * Helper functions
  */
@@ -66,13 +65,13 @@ function stl_init(): void {
 	// load textdomain
 	load_plugin_textdomain( 'staging2live', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
 }
-add_action( 'plugins_loaded', 'stl_init' );
+add_action ( 'plugins_loaded', 'stl_init' );
 
 // Autoload all PHP files in the includes/ folder.
-foreach ( glob( STL_CORE_PLUGIN_PATH . 'includes/class-*.php' ) as $filename ) {
+foreach ( glob( STL_PLUGIN_PATH . 'includes/class-*.php' ) as $filename ) {
 	include_once $filename;
 }
 
-if( class_exists( 'STL_General' ) ) {
+if( class_exists( 'STL_General' ) && is_admin() ) {
 	new STL_General();
 }
