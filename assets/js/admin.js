@@ -332,21 +332,39 @@
      * Initialize group toggles
      */
     function initGroupToggles() {
-        // Toggle group content visibility
-        $(document).on('click', '.stl-toggle-group', function(e) {
-            e.preventDefault();
-
-            var groupId = $(this).data('group-id');
-            var $content = $('#group-content-' + groupId);
+        // Clean up any existing handlers
+        $('.stl-toggle-group').off('click');
+        
+        // Set up toggle buttons with click handler
+        $('.stl-toggle-group').each(function() {
             var $button = $(this);
-
-            if ($content.is(':visible')) {
-                $content.slideUp(200);
-                $button.text(stl_admin.i18n.show_details || 'Show Details');
-            } else {
-                $content.slideDown(200);
-                $button.text(stl_admin.i18n.hide_details || 'Hide Details');
-            }
+            var groupId = $button.data('group-id');
+            var $content = $('#group-content-' + groupId);
+            
+            // Make sure content starts hidden
+            $content.hide();
+            
+            // Set initial state
+            $button.attr('data-state', 'closed');
+            
+            // Add click handler
+            $button.on('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Toggle based on current state
+                if ($button.attr('data-state') === 'closed') {
+                    $content.show();
+                    $button.text(stl_admin.i18n.hide_details || 'Hide Details');
+                    $button.attr('data-state', 'open');
+                } else {
+                    $content.hide();
+                    $button.text(stl_admin.i18n.show_details || 'Show Details');
+                    $button.attr('data-state', 'closed');
+                }
+                
+                return false;
+            });
         });
     }
 
