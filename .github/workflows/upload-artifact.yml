@@ -1,0 +1,23 @@
+name: Deploy the plugin as the artifact
+
+on:
+  push:
+    branches: ["main"]
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: staging2live-latest
+        path: |
+          *
+          !.gitignore
+          !.github
