@@ -156,7 +156,7 @@ class STL_Admin {
             </div>
 
             <div class="stl-actions">
-                <button id="stl-sync-selected" class="button button-primary"><?php esc_html_e( 'Sync Selected Changes', 'staging2live' ); ?></button>
+                <button id="stl-sync-selected" class="button button-primary"><?php esc_html_e( 'Push Selected Changes To Production', 'staging2live' ); ?></button>
             </div>
         </div>
         <?php

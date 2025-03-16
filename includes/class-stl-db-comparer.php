@@ -55,6 +55,7 @@ class STL_DB_Comparer {
         'options', // Often contains transients and cache data
         'usermeta', // User session data changes frequently
         'sessions', // Session data changes frequently
+        'term_taxonomy', // Term taxonomy data changes frequently
     );
 
     /**
