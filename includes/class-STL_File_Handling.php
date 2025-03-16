@@ -212,7 +212,13 @@ class STL_File_Handling {
 	private function delete_directory_recursively( $directory ): void {
 
 		// Get all files and subdirectories in the target directory
-		$files = array_diff( scandir( $directory ), array('.', '..') );
+		$files_in_folder = scandir( $directory );
+
+		if( ! is_array( $files_in_folder) ) {
+			return;
+		}
+
+		$files = array_diff( $files_in_folder, array('.', '..') );
 
 		// Loop through all files/subdirectories
 		foreach ( $files as $file ) {
