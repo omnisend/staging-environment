@@ -51,8 +51,6 @@ class STL_Database {
             $this->wpdb->query( "INSERT INTO $staging_table SELECT * FROM $table" );
         }
 
-        $this->wpdb->query( "INSERT INTO $staging_table SELECT * FROM $table" );
-
         $this->wpdb->query( "UPDATE " . $new_prefix . "usermeta SET meta_key = '" . $new_prefix. "capabilities' where meta_key = '" . $this->wpdb->prefix . "capabilities'" );
 
         $this->wpdb->query( "UPDATE " . $new_prefix . "usermeta SET meta_key = '" . $new_prefix. "user_level' where meta_key = '" . $this->wpdb->prefix . "user_level'" );
