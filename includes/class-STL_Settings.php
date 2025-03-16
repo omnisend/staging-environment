@@ -54,6 +54,15 @@ if ( ! class_exists('STL_Settings') ) {
 				90
 			);
 
+            add_submenu_page(
+                'staging2live',
+                'Sync',
+                'Sync',
+                'manage_options',
+                'staging2live',
+                array( $this, 'create_admin_page' )
+            );
+
 			add_action( 'admin_init', array( $this, 'options_init') );
 
 		}
