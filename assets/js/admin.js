@@ -145,9 +145,9 @@
                                 // Show image comparison
                                 var html = '<div class="stl-image-comparison">';
                                 html += '<h3>Image Comparison</h3>';
-                                
+
                                 html += '<div class="stl-image-container">';
-                                
+
                                 // Production image
                                 html += '<div class="stl-image-side">';
                                 html += '<h4>Production Version</h4>';
@@ -160,7 +160,7 @@
                                     html += '<div class="stl-image-missing">Image does not exist in production</div>';
                                 }
                                 html += '</div>';
-                                
+
                                 // Staging image
                                 html += '<div class="stl-image-side">';
                                 html += '<h4>Staging Version</h4>';
@@ -173,12 +173,12 @@
                                     html += '<div class="stl-image-missing">Image does not exist in staging</div>';
                                 }
                                 html += '</div>';
-                                
+
                                 html += '</div>'; // Close stl-image-container
                                 html += '</div>'; // Close stl-image-comparison
-                                
+
                                 $fileDiffModal.find('.stl-modal-body').html(html);
-                                
+
                                 // Make the modal wider for image comparison
                                 $fileDiffModal.find('.stl-modal-content').addClass('stl-modal-wide');
                             } else {
@@ -201,27 +201,27 @@
                                 html += '</div>';
 
                                 $fileDiffModal.find('.stl-modal-body').html(html);
-                                
+
                                 // Reset modal width
                                 $fileDiffModal.find('.stl-modal-content').removeClass('stl-modal-wide');
                             }
                         } else {
                             // Show diff for text files
                             $fileDiffModal.find('.stl-modal-body').html('<div class="stl-diff">' + response.data.diff + '</div>');
-                            
+
                             // Reset modal width
                             $fileDiffModal.find('.stl-modal-content').removeClass('stl-modal-wide');
                         }
                     } else {
                         $fileDiffModal.find('.stl-modal-body').html('<div class="notice notice-error"><p>' + response.data.message + '</p></div>');
-                        
+
                         // Reset modal width
                         $fileDiffModal.find('.stl-modal-content').removeClass('stl-modal-wide');
                     }
                 },
                 error: function() {
                     $fileDiffModal.find('.stl-modal-body').html('<div class="notice notice-error"><p>Error fetching file diff.</p></div>');
-                    
+
                     // Reset modal width
                     $fileDiffModal.find('.stl-modal-content').removeClass('stl-modal-wide');
                 }
@@ -335,11 +335,11 @@
         // Toggle group content visibility
         $(document).on('click', '.stl-toggle-group', function(e) {
             e.preventDefault();
-            
+
             var groupId = $(this).data('group-id');
             var $content = $('#group-content-' + groupId);
             var $button = $(this);
-            
+
             if ($content.is(':visible')) {
                 $content.slideUp(200);
                 $button.text(stl_admin.i18n.show_details || 'Show Details');
@@ -412,14 +412,14 @@
             var isChecked = $(this).prop('checked');
             var table = $(this).data('table');
             var group = $(this).data('group');
-            
+
             // Select/deselect all checkboxes for this table in this group
             $('.stl-group-item[data-group="' + group + '"][data-table="' + table + '"]').prop('checked', isChecked);
-            
+
             // Update selected DB entries
             updateSelectedDBEntries();
             updateSyncButtonState();
-            
+
             // Check if all tables are selected/deselected and update group checkbox
             updateGroupCheckboxState(group);
         });
@@ -428,13 +428,13 @@
         $(document).on('change', '.stl-select-group', function() {
             var isChecked = $(this).prop('checked');
             var groupId = $(this).data('group-id');
-            
+
             // Select/deselect all checkboxes in this group
             $('.stl-group-item[data-group="' + groupId + '"]').prop('checked', isChecked);
-            
+
             // Also update the "select all table" checkboxes in this group
             $('.stl-select-all-table[data-group="' + groupId + '"]').prop('checked', isChecked);
-            
+
             // Update selected DB entries
             updateSelectedDBEntries();
             updateSyncButtonState();
@@ -445,15 +445,15 @@
             // Update selected DB entries
             updateSelectedDBEntries();
             updateSyncButtonState();
-            
+
             // If this is part of a group, update the group and table checkbox states
             if ($(this).hasClass('stl-group-item')) {
                 var group = $(this).data('group');
                 var table = $(this).data('table');
-                
+
                 // Update the table checkbox state
                 updateTableCheckboxState(group, table);
-                
+
                 // Update the group checkbox state
                 updateGroupCheckboxState(group);
             } else {
@@ -471,7 +471,7 @@
         var $tableItems = $('.stl-group-item[data-group="' + group + '"][data-table="' + table + '"]');
         var $checkedItems = $tableItems.filter(':checked');
         var allChecked = $tableItems.length === $checkedItems.length;
-        
+
         $('.stl-select-all-table[data-group="' + group + '"][data-table="' + table + '"]').prop('checked', allChecked);
     }
 
@@ -482,7 +482,7 @@
         var $groupItems = $('.stl-group-item[data-group="' + group + '"]');
         var $checkedItems = $groupItems.filter(':checked');
         var allChecked = $groupItems.length === $checkedItems.length;
-        
+
         $('.stl-select-group[data-group-id="' + group + '"]').prop('checked', allChecked);
     }
 
@@ -522,7 +522,7 @@
                 if (group && checkedGroups[group]) {
                     try {
                         var data = JSON.parse($(this).val());
-                        
+
                         // Only add if it's checked or part of a group with other checked items
                         if ($(this).prop('checked')) {
                             // Add the group info to the data
@@ -725,6 +725,10 @@ jQuery(document).ready(function(){
                     .css( { "float":"right", "visibility":"none" } );
 
                 jQuery( "a#create-staging" ).css( { "pointer-events":"unset", "color":"#fff" } );
+
+                setTimeout(function() {
+                    location.reload();
+                }, 5000);
             }
         });
     });
