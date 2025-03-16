@@ -1,5 +1,7 @@
 # Staging2Live
 
+Website: https://staging2live.com
+
 ## Overview
 
 **Staging2Live** is a WordPress plugin designed to simplify the process of setting up a staging environment. It ensures that staging environments are configured securely, preventing issues like the corruption of production data or broken integrations. By automating configuration and providing clear visual guidance directly within the WordPress Admin, the tool helps developers and merchants create reliable, secure, and effective staging environments.
