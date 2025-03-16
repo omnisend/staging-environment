@@ -57,6 +57,26 @@
     margin-top: 20px;
 }
 
+/* Post Type Groups */
+.stl-post-type-groups {
+    margin-top: 20px;
+}
+
+.stl-post-type-group {
+    margin-bottom: 30px;
+}
+
+.stl-post-type-header {
+    background: #f0f0f0;
+    padding: 10px 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    border-left: 5px solid #2271b1;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1d2327;
+}
+
 .stl-content-group {
     margin-bottom: 15px;
     border: 1px solid #ddd;
