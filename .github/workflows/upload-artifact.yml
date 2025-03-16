@@ -1,23 +1,28 @@
-name: Deploy the plugin as the artifact
+name: Generate and Commit Plugin as a Zip file
 
 on:
   push:
-    branches: ["main"]
-
-  workflow_dispatch:
+    branches:
+      - commit-latest-zip
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: staging2live-latest
-        path: |
-          *
-          !.gitignore
-          !.github
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Zip the repository
+        run: |
+          zip -r latest.zip . -x ".gitignore" ".github"
+
+      - name: Commit latest.zip
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "<>"
+          git add latest.zip
+          git commit -m "Update latest.zip" || echo "No changes to commit"
+          git push origin ${{ github.ref }}
