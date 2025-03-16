@@ -35,8 +35,10 @@ class STL_Database {
             return false;
         }
 
+        $new_prefix = $this->wpdb->prefix . $this->staging_name . '_';
+
         foreach ( $tables as $table ) {
-            $staging_table = str_replace( $this->wpdb->prefix, $this->wpdb->prefix . $this->staging_name . '_', $table );
+            $staging_table = str_replace( $this->wpdb->prefix, $new_prefix, $table );
 
             $this->wpdb->query( "DROP TABLE IF EXISTS $staging_table" );
 
@@ -48,6 +50,16 @@ class STL_Database {
 
             $this->wpdb->query( "INSERT INTO $staging_table SELECT * FROM $table" );
         }
+
+        $this->wpdb->query( "INSERT INTO $staging_table SELECT * FROM $table" );
+
+        $this->wpdb->query( "UPDATE " . $new_prefix . "usermeta SET meta_key = '" . $new_prefix. "capabilities' where meta_key = '" . $this->wpdb->prefix . "capabilities'" );
+
+        $this->wpdb->query( "UPDATE " . $new_prefix . "usermeta SET meta_key = '" . $new_prefix. "user_level' where meta_key = '" . $this->wpdb->prefix . "user_level'" );
+
+        $this->wpdb->query( "UPDATE " . $new_prefix . "usermeta SET meta_key = '" . $new_prefix. "autosave_draft_ids' where meta_key = '" . $this->wpdb->prefix . "autosave_draft_ids'" );
+
+        $this->wpdb->query( "UPDATE " . $new_prefix . "options SET option_name = '" . $new_prefix. "user_roles' where option_name = '" . $this->wpdb->prefix . "user_roles'" );
 
 		$this->add_hash_table();
 
