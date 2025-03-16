@@ -52,6 +52,203 @@
     display: block;
 }
 
+/* Content Groups */
+.stl-content-groups {
+    margin-top: 20px;
+}
+
+.stl-content-group {
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.stl-group-header {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    background: #f8f8f8;
+    border-bottom: 1px solid #ddd;
+}
+
+.stl-group-header h4 {
+    flex: 1;
+    margin: 0 10px;
+    font-size: 14px;
+}
+
+.stl-group-header .stl-change-type {
+    margin-left: 10px;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: normal;
+}
+
+.stl-type-added {
+    background-color: #e7f9e7;
+    color: #0a6b0a;
+}
+
+.stl-type-modified {
+    background-color: #fff8e5;
+    color: #95700d;
+}
+
+.stl-type-deleted {
+    background-color: #ffeaea;
+    color: #c62828;
+}
+
+.stl-group-content {
+    padding: 15px;
+}
+
+.stl-group-content h5 {
+    margin: 15px 0 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #eee;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+.stl-group-content h5:first-child {
+    margin-top: 0;
+}
+
+.stl-group-table {
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+/* Attachment display */
+.stl-attachments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.stl-attachment-item {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+    background: white;
+}
+
+.stl-attachment-preview {
+    height: 120px;
+    background: #f1f1f1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+}
+
+.stl-attachment-preview img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.stl-attachment-icon {
+    font-size: 48px;
+    color: #bbb;
+}
+
+.stl-attachment-details {
+    padding: 10px;
+    border-top: 1px solid #eee;
+    position: relative;
+}
+
+.stl-attachment-details label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    padding-right: 65px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.stl-attachment-details .stl-change-type {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    font-size: 10px;
+}
+
+.stl-attachment-details .button {
+    width: 100%;
+    text-align: center;
+    margin-top: 5px;
+}
+
+/* Child Posts display */
+.stl-child-posts {
+    margin-bottom: 20px;
+}
+
+.stl-child-post-item {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    background: white;
+    overflow: hidden;
+}
+
+.stl-child-post-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 15px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #f9f9f9;
+    position: relative;
+}
+
+.stl-child-post-header label {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    font-weight: 600;
+    flex: 1;
+}
+
+.stl-child-post-title {
+    margin-left: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 300px;
+}
+
+.stl-child-post-type {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: #e7e7e7;
+    font-size: 11px;
+    font-weight: normal;
+    color: #555;
+}
+
+.stl-child-post-actions {
+    padding: 10px 15px;
+    background: white;
+    text-align: right;
+}
+
+.stl-child-post-actions .button {
+    margin-left: 5px;
+}
+
 /* Tables */
 .stl-changes-table {
     margin-top: 20px;

@@ -205,10 +205,10 @@ class STL_DB_Comparer {
     }
 
     /**
-     * Get database changes between staging and production
+     * Get all changes between production and staging databases
      *
      * @param bool $force Force refresh of changes
-     * @return array List of changed database entries
+     * @return array List of changed database entries, grouped by post ID when appropriate
      */
     public function get_changes( $force = false ) {
         global $wpdb;
@@ -220,6 +220,7 @@ class STL_DB_Comparer {
         // }
 
         $changes = array();
+        $grouped_changes = array();
         
         // Log the prefixes being used
         $this->log_message("Using production prefix: '{$this->production_prefix}' and staging prefix: '{$this->staging_prefix}'");
@@ -280,10 +281,13 @@ class STL_DB_Comparer {
             }
         }
         
-        // Cache results for 5 minutes
-        set_transient( 'stl_db_changes', $changes, 5 * MINUTE_IN_SECONDS );
+        // Group changes by post_id or content relationship
+        $grouped_changes = $this->group_related_changes($changes);
         
-        return $changes;
+        // Cache results for 5 minutes
+        set_transient( 'stl_db_changes', $grouped_changes, 5 * MINUTE_IN_SECONDS );
+        
+        return $grouped_changes;
     }
     
     /**
@@ -402,6 +406,389 @@ class STL_DB_Comparer {
         }
         
         return $changes;
+    }
+    
+    /**
+     * Group related database changes together
+     * 
+     * @param array $changes All detected changes
+     * @return array Changes grouped by relationship (post ID, etc)
+     */
+    private function group_related_changes($changes) {
+        $grouped = array();
+        $post_groups = array();
+        $attachment_to_post_mapping = array();
+        $child_to_parent_mapping = array();
+        
+        // First pass: identify posts with parent relationships
+        if (isset($changes['posts'])) {
+            // Step 1: Find attachments and child posts, create mappings
+            foreach ($changes['posts'] as $change) {
+                $post_id = $change['id'];
+                $post_type = isset($change['details']['post_type']) ? $change['details']['post_type'] : '';
+                $post_parent = isset($change['details']['post_parent']) && !empty($change['details']['post_parent']) 
+                    ? $change['details']['post_parent'] 
+                    : null;
+                
+                // If this post has a parent, record the relationship
+                if ($post_parent) {
+                    // If it's an attachment, add to attachment mapping
+                    if ($post_type === 'attachment') {
+                        if (!isset($attachment_to_post_mapping[$post_parent])) {
+                            $attachment_to_post_mapping[$post_parent] = array();
+                        }
+                        $attachment_to_post_mapping[$post_parent][] = $post_id;
+                    }
+                    
+                    // Also add to the general child-to-parent mapping (for all post types)
+                    if (!isset($child_to_parent_mapping[$post_parent])) {
+                        $child_to_parent_mapping[$post_parent] = array();
+                    }
+                    $child_to_parent_mapping[$post_parent][] = array(
+                        'id' => $post_id,
+                        'type' => $post_type
+                    );
+                }
+            }
+            
+            // Step 2: Create groups for parent posts first
+            foreach ($changes['posts'] as $change) {
+                $post_id = $change['id'];
+                $group_key = 'post_' . $post_id;
+                $post_type = isset($change['details']['post_type']) ? $change['details']['post_type'] : '';
+                $post_parent = isset($change['details']['post_parent']) && !empty($change['details']['post_parent']) 
+                    ? $change['details']['post_parent'] 
+                    : null;
+                
+                // Skip posts that have a parent - we'll handle them later
+                if ($post_parent) {
+                    continue;
+                }
+                
+                if (!isset($post_groups[$group_key])) {
+                    $post_title = '';
+                    
+                    // Get a title for this group
+                    if ($change['type'] === 'added' && isset($change['details']['post_title'])) {
+                        $post_title = $change['details']['post_title'];
+                    } elseif ($change['type'] === 'deleted' && isset($change['details']['post_title'])) {
+                        $post_title = $change['details']['post_title'];
+                    } elseif ($change['type'] === 'modified') {
+                        $post_title = $change['summary'];
+                    }
+                    
+                    $post_groups[$group_key] = array(
+                        'group_id' => $group_key,
+                        'post_id' => $post_id,
+                        'title' => $post_title ? $post_title : sprintf(__('Post ID: %s', 'staging2live'), $post_id),
+                        'type' => $change['type'],
+                        'changes' => array(),
+                    );
+                }
+                
+                // Add this change to the group
+                $post_groups[$group_key]['changes']['posts'][] = $change;
+                
+                // Check if this post has any attachments or child posts and add them to the group
+                $this->add_children_to_group($post_id, $post_groups[$group_key], $changes, $attachment_to_post_mapping, $child_to_parent_mapping);
+            }
+            
+            // Step 3: Handle child posts (including attachments)
+            // Create a temp mapping to track which posts have been processed
+            $processed_posts = array();
+            
+            foreach ($changes['posts'] as $change) {
+                $post_id = $change['id'];
+                
+                // Skip if we already processed this post
+                if (isset($processed_posts[$post_id])) {
+                    continue;
+                }
+                
+                $post_type = isset($change['details']['post_type']) ? $change['details']['post_type'] : '';
+                $post_parent = isset($change['details']['post_parent']) && !empty($change['details']['post_parent']) 
+                    ? $change['details']['post_parent'] 
+                    : null;
+                
+                // If this is a child post (has a parent)
+                if ($post_parent) {
+                    $has_parent_group = false;
+                    $parent_group_key = 'post_' . $post_parent;
+                    
+                    // Check if the parent post has a group
+                    if (isset($post_groups[$parent_group_key])) {
+                        // Check if this post has already been added to the parent group
+                        $found_in_group = false;
+                        
+                        // For attachments, check in the attachments array
+                        if ($post_type === 'attachment' && isset($post_groups[$parent_group_key]['changes']['attachments'])) {
+                            foreach ($post_groups[$parent_group_key]['changes']['attachments'] as $attachment) {
+                                if ($attachment['id'] == $post_id) {
+                                    $found_in_group = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // For other post types, check in child_posts array
+                        if (!$found_in_group && isset($post_groups[$parent_group_key]['changes']['child_posts'])) {
+                            foreach ($post_groups[$parent_group_key]['changes']['child_posts'] as $child_post) {
+                                if ($child_post['id'] == $post_id) {
+                                    $found_in_group = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // If not found, add it to the appropriate section of the parent group
+                        if (!$found_in_group) {
+                            if ($post_type === 'attachment') {
+                                if (!isset($post_groups[$parent_group_key]['changes']['attachments'])) {
+                                    $post_groups[$parent_group_key]['changes']['attachments'] = array();
+                                }
+                                $post_groups[$parent_group_key]['changes']['attachments'][] = $change;
+                            } else {
+                                if (!isset($post_groups[$parent_group_key]['changes']['child_posts'])) {
+                                    $post_groups[$parent_group_key]['changes']['child_posts'] = array();
+                                }
+                                $post_groups[$parent_group_key]['changes']['child_posts'][] = $change;
+                            }
+                        }
+                        
+                        $has_parent_group = true;
+                        $processed_posts[$post_id] = true;
+                    }
+                    
+                    // If no parent group found, create a new group (either for this post or its parent)
+                    if (!$has_parent_group) {
+                        // Check if the parent exists in the posts changes
+                        $parent_exists = false;
+                        foreach ($changes['posts'] as $parent_check) {
+                            if ($parent_check['id'] == $post_parent) {
+                                $parent_exists = true;
+                                break;
+                            }
+                        }
+                        
+                        if ($parent_exists) {
+                            // The parent exists but wasn't processed yet - we'll let it be handled in its turn
+                            continue;
+                        }
+                        
+                        // The parent doesn't exist in the changes, create a group for this child post
+                        $group_key = 'post_' . $post_id;
+                        
+                        if (!isset($post_groups[$group_key])) {
+                            $post_title = '';
+                            
+                            // Get a title for this group
+                            if ($change['type'] === 'added' && isset($change['details']['post_title'])) {
+                                $post_title = $change['details']['post_title'];
+                            } elseif ($change['type'] === 'deleted' && isset($change['details']['post_title'])) {
+                                $post_title = $change['details']['post_title'];
+                            } elseif ($change['type'] === 'modified') {
+                                $post_title = $change['summary'];
+                            }
+                            
+                            // For attachments, use a special prefix
+                            if ($post_type === 'attachment') {
+                                $title_prefix = __('Media: ', 'staging2live');
+                            } else {
+                                $title_prefix = $post_type ? ucfirst($post_type) . ': ' : __('Child Post: ', 'staging2live');
+                            }
+                            
+                            $post_groups[$group_key] = array(
+                                'group_id' => $group_key,
+                                'post_id' => $post_id,
+                                'title' => $post_title ? $post_title : sprintf($title_prefix . '%s', $post_id),
+                                'type' => $change['type'],
+                                'changes' => array(),
+                            );
+                        }
+                        
+                        // Add this change to the group
+                        $post_groups[$group_key]['changes']['posts'][] = $change;
+                        $processed_posts[$post_id] = true;
+                    }
+                }
+            }
+        }
+        
+        // Second pass: Find featured images from postmeta
+        if (isset($changes['postmeta'])) {
+            foreach ($changes['postmeta'] as $change) {
+                // Check if this is a _thumbnail_id meta entry (WordPress featured image)
+                if (isset($change['details']['meta_key']) && $change['details']['meta_key'] === '_thumbnail_id') {
+                    $post_id = null;
+                    $thumbnail_id = null;
+                    
+                    // Get the post ID and thumbnail ID
+                    if (isset($change['details']['post_id'])) {
+                        $post_id = $change['details']['post_id'];
+                    }
+                    
+                    if (isset($change['details']['meta_value'])) {
+                        $thumbnail_id = $change['details']['meta_value'];
+                    }
+                    
+                    // If we have both IDs, check if the thumbnail exists in the posts changes
+                    if ($post_id && $thumbnail_id && isset($changes['posts'])) {
+                        $post_group_key = 'post_' . $post_id;
+                        
+                        // If the post is in our groups, add the featured image relationship
+                        if (isset($post_groups[$post_group_key])) {
+                            // Find the thumbnail in posts changes
+                            foreach ($changes['posts'] as $thumbnail_change) {
+                                if ($thumbnail_change['id'] == $thumbnail_id) {
+                                    if (!isset($post_groups[$post_group_key]['changes']['attachments'])) {
+                                        $post_groups[$post_group_key]['changes']['attachments'] = array();
+                                    }
+                                    
+                                    // Check if we already have this attachment
+                                    $found = false;
+                                    foreach ($post_groups[$post_group_key]['changes']['attachments'] as $attachment) {
+                                        if ($attachment['id'] == $thumbnail_id) {
+                                            $found = true;
+                                            break;
+                                        }
+                                    }
+                                    
+                                    if (!$found) {
+                                        $post_groups[$post_group_key]['changes']['attachments'][] = $thumbnail_change;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Third pass: associate related content with post groups
+        foreach ($changes as $table => $table_changes) {
+            // Skip posts table as we've already processed it
+            if ($table === 'posts') {
+                continue;
+            }
+            
+            foreach ($table_changes as $change) {
+                $associated_post_id = null;
+                $group_assigned = false;
+                
+                // Try to associate with a post based on table and columns
+                if ($table === 'postmeta' && isset($change['details']['post_id'])) {
+                    $associated_post_id = $change['details']['post_id'];
+                } elseif ($table === 'comments' && isset($change['details']['comment_post_ID'])) {
+                    $associated_post_id = $change['details']['comment_post_ID'];
+                } elseif ($table === 'commentmeta' && isset($change['details']['comment_id'])) {
+                    // Try to find the associated post through the comment
+                    $comment_id = $change['details']['comment_id'];
+                    $associated_post = $this->get_post_id_for_comment($comment_id);
+                    if ($associated_post) {
+                        $associated_post_id = $associated_post;
+                    }
+                }
+                
+                // If we found an associated post, add this change to that group
+                if ($associated_post_id) {
+                    $group_key = 'post_' . $associated_post_id;
+                    
+                    if (isset($post_groups[$group_key])) {
+                        if (!isset($post_groups[$group_key]['changes'][$table])) {
+                            $post_groups[$group_key]['changes'][$table] = array();
+                        }
+                        $post_groups[$group_key]['changes'][$table][] = $change;
+                        $group_assigned = true;
+                    }
+                }
+                
+                // If not assigned to a group, keep it as a standalone change
+                if (!$group_assigned) {
+                    if (!isset($grouped[$table])) {
+                        $grouped[$table] = array();
+                    }
+                    $grouped[$table][] = $change;
+                }
+            }
+        }
+        
+        // Merge the post groups into the final result
+        foreach ($post_groups as $group) {
+            if (!isset($grouped['content_groups'])) {
+                $grouped['content_groups'] = array();
+            }
+            $grouped['content_groups'][] = $group;
+        }
+        
+        return $grouped;
+    }
+    
+    /**
+     * Add child posts and attachments to a parent group
+     *
+     * @param int $parent_id The parent post ID
+     * @param array &$parent_group The parent group to add children to
+     * @param array $changes All detected changes
+     * @param array $attachment_mapping Mapping of parents to attachment IDs
+     * @param array $child_mapping Mapping of parents to child post IDs
+     */
+    private function add_children_to_group($parent_id, &$parent_group, $changes, $attachment_mapping, $child_mapping) {
+        // Add attachments to the group
+        if (isset($attachment_mapping[$parent_id])) {
+            foreach ($attachment_mapping[$parent_id] as $attachment_id) {
+                // Find the attachment change
+                foreach ($changes['posts'] as $attachment_change) {
+                    if ($attachment_change['id'] == $attachment_id) {
+                        if (!isset($parent_group['changes']['attachments'])) {
+                            $parent_group['changes']['attachments'] = array();
+                        }
+                        $parent_group['changes']['attachments'][] = $attachment_change;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Add other child posts to the group
+        if (isset($child_mapping[$parent_id])) {
+            foreach ($child_mapping[$parent_id] as $child) {
+                // Skip attachments as we've already handled them
+                if ($child['type'] === 'attachment') {
+                    continue;
+                }
+                
+                // Find the child post change
+                foreach ($changes['posts'] as $child_change) {
+                    if ($child_change['id'] == $child['id']) {
+                        if (!isset($parent_group['changes']['child_posts'])) {
+                            $parent_group['changes']['child_posts'] = array();
+                        }
+                        $parent_group['changes']['child_posts'][] = $child_change;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Get the post ID associated with a comment
+     *
+     * @param int $comment_id The comment ID
+     * @return int|null The post ID or null if not found
+     */
+    private function get_post_id_for_comment($comment_id) {
+        global $wpdb;
+        
+        $production_comments_table = $this->production_prefix . 'comments';
+        
+        $post_id = $wpdb->get_var($wpdb->prepare(
+            "SELECT comment_post_ID FROM {$production_comments_table} WHERE comment_ID = %d",
+            $comment_id
+        ));
+        
+        return $post_id ? (int) $post_id : null;
     }
     
     /**

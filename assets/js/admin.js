@@ -28,6 +28,9 @@
         // Initialize checkboxes
         initCheckboxes();
 
+        // Initialize group toggles
+        initGroupToggles();
+
         // Initialize sync button
         initSyncButton();
     });
@@ -326,6 +329,28 @@
     }
 
     /**
+     * Initialize group toggles
+     */
+    function initGroupToggles() {
+        // Toggle group content visibility
+        $(document).on('click', '.stl-toggle-group', function(e) {
+            e.preventDefault();
+            
+            var groupId = $(this).data('group-id');
+            var $content = $('#group-content-' + groupId);
+            var $button = $(this);
+            
+            if ($content.is(':visible')) {
+                $content.slideUp(200);
+                $button.text(stl_admin.i18n.show_details || 'Show Details');
+            } else {
+                $content.slideDown(200);
+                $button.text(stl_admin.i18n.hide_details || 'Hide Details');
+            }
+        });
+    }
+
+    /**
      * Initialize checkboxes
      */
     function initCheckboxes() {
@@ -339,80 +364,177 @@
             $selectedFiles = [];
 
             if (isChecked) {
-                $('.stl-select-file').each(function() {
+                $('.stl-select-file:checked').each(function() {
                     $selectedFiles.push($(this).val());
                 });
             }
+
+            updateSyncButtonState();
         });
 
-        // Individual file checkboxes
+        // Individual file checkbox
         $(document).on('change', '.stl-select-file', function() {
             var file = $(this).val();
 
             if ($(this).prop('checked')) {
-                // Add file to selected array
+                // Add to selected files
                 if ($selectedFiles.indexOf(file) === -1) {
                     $selectedFiles.push(file);
                 }
             } else {
-                // Remove file from selected array
+                // Remove from selected files
                 var index = $selectedFiles.indexOf(file);
                 if (index !== -1) {
                     $selectedFiles.splice(index, 1);
                 }
 
-                // Uncheck select all checkbox
+                // Uncheck "select all" if any item is unchecked
                 $('#stl-select-all-files').prop('checked', false);
             }
+
+            updateSyncButtonState();
         });
 
-        // Select all DB entries checkbox
+        // Select all DB changes checkbox
         $('#stl-select-all-db').on('change', function() {
             var isChecked = $(this).prop('checked');
 
-            $('.stl-select-db').prop('checked', isChecked);
+            // Only select checkboxes not in groups
+            $('.stl-select-db:not(.stl-group-item)').prop('checked', isChecked);
 
             // Update selected DB entries array
-            $selectedDBEntries = [];
-
-            if (isChecked) {
-                $('.stl-select-db').each(function() {
-                    $selectedDBEntries.push(JSON.parse($(this).val()));
-                });
-            }
+            updateSelectedDBEntries();
+            updateSyncButtonState();
         });
 
-        // Individual DB entry checkboxes
+        // Select all in a specific table within a group
+        $(document).on('change', '.stl-select-all-table', function() {
+            var isChecked = $(this).prop('checked');
+            var table = $(this).data('table');
+            var group = $(this).data('group');
+            
+            // Select/deselect all checkboxes for this table in this group
+            $('.stl-group-item[data-group="' + group + '"][data-table="' + table + '"]').prop('checked', isChecked);
+            
+            // Update selected DB entries
+            updateSelectedDBEntries();
+            updateSyncButtonState();
+            
+            // Check if all tables are selected/deselected and update group checkbox
+            updateGroupCheckboxState(group);
+        });
+
+        // Select all in a group
+        $(document).on('change', '.stl-select-group', function() {
+            var isChecked = $(this).prop('checked');
+            var groupId = $(this).data('group-id');
+            
+            // Select/deselect all checkboxes in this group
+            $('.stl-group-item[data-group="' + groupId + '"]').prop('checked', isChecked);
+            
+            // Also update the "select all table" checkboxes in this group
+            $('.stl-select-all-table[data-group="' + groupId + '"]').prop('checked', isChecked);
+            
+            // Update selected DB entries
+            updateSelectedDBEntries();
+            updateSyncButtonState();
+        });
+
+        // Individual DB change checkbox
         $(document).on('change', '.stl-select-db', function() {
-            var entry = JSON.parse($(this).val());
-
-            if ($(this).prop('checked')) {
-                // Add entry to selected array
-                var exists = false;
-
-                for (var i = 0; i < $selectedDBEntries.length; i++) {
-                    if ($selectedDBEntries[i].table === entry.table && $selectedDBEntries[i].id === entry.id) {
-                        exists = true;
-                        break;
-                    }
-                }
-
-                if (!exists) {
-                    $selectedDBEntries.push(entry);
-                }
+            // Update selected DB entries
+            updateSelectedDBEntries();
+            updateSyncButtonState();
+            
+            // If this is part of a group, update the group and table checkbox states
+            if ($(this).hasClass('stl-group-item')) {
+                var group = $(this).data('group');
+                var table = $(this).data('table');
+                
+                // Update the table checkbox state
+                updateTableCheckboxState(group, table);
+                
+                // Update the group checkbox state
+                updateGroupCheckboxState(group);
             } else {
-                // Remove entry from selected array
-                for (var i = 0; i < $selectedDBEntries.length; i++) {
-                    if ($selectedDBEntries[i].table === entry.table && $selectedDBEntries[i].id === entry.id) {
-                        $selectedDBEntries.splice(i, 1);
-                        break;
-                    }
-                }
-
-                // Uncheck select all checkbox
-                $('#stl-select-all-db').prop('checked', false);
+                // For non-grouped items, check the "select all" checkbox state
+                var allChecked = $('.stl-select-db:not(.stl-group-item)').length === $('.stl-select-db:not(.stl-group-item):checked').length;
+                $('#stl-select-all-db').prop('checked', allChecked);
             }
         });
+    }
+
+    /**
+     * Update the state of a table's "select all" checkbox
+     */
+    function updateTableCheckboxState(group, table) {
+        var $tableItems = $('.stl-group-item[data-group="' + group + '"][data-table="' + table + '"]');
+        var $checkedItems = $tableItems.filter(':checked');
+        var allChecked = $tableItems.length === $checkedItems.length;
+        
+        $('.stl-select-all-table[data-group="' + group + '"][data-table="' + table + '"]').prop('checked', allChecked);
+    }
+
+    /**
+     * Update the state of a group's "select all" checkbox
+     */
+    function updateGroupCheckboxState(group) {
+        var $groupItems = $('.stl-group-item[data-group="' + group + '"]');
+        var $checkedItems = $groupItems.filter(':checked');
+        var allChecked = $groupItems.length === $checkedItems.length;
+        
+        $('.stl-select-group[data-group-id="' + group + '"]').prop('checked', allChecked);
+    }
+
+    /**
+     * Update the selected DB entries array based on checked checkboxes
+     */
+    function updateSelectedDBEntries() {
+        $selectedDBEntries = [];
+
+        // Store group IDs where at least one item is checked
+        var checkedGroups = {};
+
+        // First pass: identify which groups have checked items
+        $('.stl-select-db.stl-group-item:checked').each(function() {
+            var group = $(this).data('group');
+            if (group) {
+                checkedGroups[group] = true;
+            }
+        });
+
+        // Process non-grouped items normally
+        $('.stl-select-db:checked:not(.stl-group-item)').each(function() {
+            try {
+                var data = JSON.parse($(this).val());
+                $selectedDBEntries.push(data);
+            } catch(e) {
+                console.error('Invalid JSON in checkbox value', $(this).val());
+            }
+        });
+
+        // Process grouped items
+        // We need to include ALL items from a group if ANY are checked
+        // This ensures related content is synced together
+        if (Object.keys(checkedGroups).length > 0) {
+            $('.stl-group-item').each(function() {
+                var group = $(this).data('group');
+                if (group && checkedGroups[group]) {
+                    try {
+                        var data = JSON.parse($(this).val());
+                        
+                        // Only add if it's checked or part of a group with other checked items
+                        if ($(this).prop('checked')) {
+                            // Add the group info to the data
+                            data.group = group;
+                            $selectedDBEntries.push(data);
+                        }
+                    } catch(e) {
+                        console.error('Invalid JSON in checkbox value', $(this).val());
+                    }
+                }
+            });
+        }
     }
 
     /**

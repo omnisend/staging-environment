@@ -188,128 +188,190 @@ class STL_Synchronizer {
             $table = $table_data['table'];
             $id = $table_data['id'];
             
-            if ( ! isset( $db_changes[ $table ] ) ) {
-                $results['error'][] = sprintf( __( 'Table %s not found in change list.', 'staging2live' ), $table );
-                continue;
-            }
-            
-            // Find the change in the table changes
-            $change = null;
-            foreach ( $db_changes[ $table ] as $table_change ) {
-                if ( $table_change['id'] == $id ) {
-                    $change = $table_change;
-                    break;
+            // Handle special case for content groups
+            if (isset($db_changes['content_groups'])) {
+                $found_in_group = false;
+                
+                // Check each content group
+                foreach ($db_changes['content_groups'] as $group) {
+                    // Check each section in the group
+                    foreach ($group['changes'] as $section_table => $section_changes) {
+                        // If this is the table we're looking for
+                        if ($section_table === $table || 
+                           ($table === 'posts' && ($section_table === 'attachments' || $section_table === 'child_posts'))) {
+                            
+                            // For attachments and child_posts, treat them as posts table
+                            $actual_table = $table;
+                            
+                            // Find the change in this section
+                            foreach ($section_changes as $section_change) {
+                                if ($section_change['id'] == $id) {
+                                    // Found the change
+                                    $change = $section_change;
+                                    $found_in_group = true;
+                                    break 3; // Exit all loops
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                if ($found_in_group) {
+                    // Process the found change
+                    $result = $this->process_db_change($table, $id, $change, $results);
+                    continue; // Move to the next table_data
                 }
             }
             
-            if ( null === $change ) {
-                $results['error'][] = sprintf( __( 'Entry with ID %s not found in change list for table %s.', 'staging2live' ), $id, $table );
-                continue;
+            // If we get here, either there are no content groups or the change wasn't found in any group
+            // Check in regular table changes
+            if (isset($db_changes[$table])) {
+                $change = null;
+                foreach ($db_changes[$table] as $table_change) {
+                    if ($table_change['id'] == $id) {
+                        $change = $table_change;
+                        break;
+                    }
+                }
+                
+                if ($change) {
+                    // Process the found change
+                    $result = $this->process_db_change($table, $id, $change, $results);
+                    continue; // Move to the next table_data
+                }
             }
             
-            $production_table = $this->production_prefix . $table;
-            $staging_table = $this->staging_prefix . $table;
-            
-            // Get the primary key column for this table
-            $primary_key = $this->get_primary_key( $production_table );
-            
-            if ( ! $primary_key ) {
-                $results['error'][] = sprintf( __( 'Could not find primary key for table %s.', 'staging2live' ), $table );
-                continue;
-            }
-            
-            switch ( $change['type'] ) {
-                case 'added':
-                    // Get all columns for this table
-                    $columns = $this->get_table_columns( $staging_table );
-                    
-                    // Get the row from staging
-                    $staging_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$staging_table} WHERE {$primary_key} = %s", $id ), ARRAY_A );
-                    
-                    if ( ! $staging_row ) {
-                        $results['error'][] = sprintf( __( 'Could not find entry with ID %s in staging table %s.', 'staging2live' ), $id, $table );
-                        continue 2; // Skip to next table
-                    }
-                    
-                    // Build the query
-                    $query_columns = array();
-                    $query_values = array();
-                    $query_placeholders = array();
-                    
-                    foreach ( $columns as $column ) {
-                        if ( isset( $staging_row[ $column ] ) ) {
-                            $query_columns[] = $column;
-                            $query_values[] = $staging_row[ $column ];
-                            $query_placeholders[] = '%s';
-                        }
-                    }
-                    
-                    // Insert the row
-                    $query = "INSERT INTO {$production_table} (" . implode( ', ', $query_columns ) . ") VALUES (" . implode( ', ', $query_placeholders ) . ")";
-                    $result = $wpdb->query( $wpdb->prepare( $query, $query_values ) );
-                    
-                    if ( false === $result ) {
-                        $results['error'][] = sprintf( __( 'Could not insert entry with ID %s in table %s.', 'staging2live' ), $id, $table );
-                    } else {
-                        $results['success'][] = sprintf( __( 'Entry with ID %s inserted successfully in table %s.', 'staging2live' ), $id, $table );
-                    }
-                    break;
-                    
-                case 'modified':
-                    // Get the row from staging
-                    $staging_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$staging_table} WHERE {$primary_key} = %s", $id ), ARRAY_A );
-                    
-                    if ( ! $staging_row ) {
-                        $results['error'][] = sprintf( __( 'Could not find entry with ID %s in staging table %s.', 'staging2live' ), $id, $table );
-                        continue 2; // Skip to next table
-                    }
-                    
-                    // Build the query
-                    $query_sets = array();
-                    $query_values = array();
-                    
-                    foreach ( $staging_row as $column => $value ) {
-                        if ( $column !== $primary_key ) {
-                            $query_sets[] = "{$column} = %s";
-                            $query_values[] = $value;
-                        }
-                    }
-                    
-                    // Add the ID to the values
-                    $query_values[] = $id;
-                    
-                    // Update the row
-                    $query = "UPDATE {$production_table} SET " . implode( ', ', $query_sets ) . " WHERE {$primary_key} = %s";
-                    $result = $wpdb->query( $wpdb->prepare( $query, $query_values ) );
-                    
-                    if ( false === $result ) {
-                        $results['error'][] = sprintf( __( 'Could not update entry with ID %s in table %s.', 'staging2live' ), $id, $table );
-                    } else {
-                        $results['success'][] = sprintf( __( 'Entry with ID %s updated successfully in table %s.', 'staging2live' ), $id, $table );
-                    }
-                    break;
-                    
-                case 'deleted':
-                    // Delete the row
-                    $result = $wpdb->delete( $production_table, array( $primary_key => $id ), array( '%s' ) );
-                    
-                    if ( false === $result ) {
-                        $results['error'][] = sprintf( __( 'Could not delete entry with ID %s from table %s.', 'staging2live' ), $id, $table );
-                    } else {
-                        $results['success'][] = sprintf( __( 'Entry with ID %s deleted successfully from table %s.', 'staging2live' ), $id, $table );
-                    }
-                    break;
-                    
-                default:
-                    $results['error'][] = sprintf( __( 'Unknown change type for entry with ID %s in table %s.', 'staging2live' ), $id, $table );
-                    break;
-            }
+            // If we get here, the change wasn't found anywhere
+            $results['error'][] = sprintf( 
+                __( 'Entry with ID %s not found in change list for table %s.', 'staging2live' ), 
+                $id, 
+                $table 
+            );
         }
         
         // Clear cache
         delete_transient( 'stl_db_changes' );
         
         return $results;
+    }
+    
+    /**
+     * Process a single database change
+     *
+     * @param string $table The table name
+     * @param string|int $id The row ID
+     * @param array $change The change data
+     * @param array &$results Reference to results array to update
+     * @return bool Success or failure
+     */
+    private function process_db_change($table, $id, $change, &$results) {
+        global $wpdb;
+        
+        $production_table = $this->production_prefix . $table;
+        $staging_table = $this->staging_prefix . $table;
+        
+        // Get the primary key column for this table
+        $primary_key = $this->get_primary_key($production_table);
+        
+        if (!$primary_key) {
+            $results['error'][] = sprintf( __( 'Could not find primary key for table %s.', 'staging2live' ), $table );
+            return false;
+        }
+        
+        switch ($change['type']) {
+            case 'added':
+                // Get all columns for this table
+                $columns = $this->get_table_columns($staging_table);
+                
+                // Get the row from staging
+                $staging_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$staging_table} WHERE {$primary_key} = %s", $id ), ARRAY_A );
+                
+                if (!$staging_row) {
+                    $results['error'][] = sprintf( __( 'Could not find entry with ID %s in staging table %s.', 'staging2live' ), $id, $table );
+                    return false;
+                }
+                
+                // Build the query
+                $query_columns = array();
+                $query_values = array();
+                $query_placeholders = array();
+                
+                foreach ($columns as $column) {
+                    if (isset($staging_row[$column])) {
+                        $query_columns[] = $column;
+                        $query_values[] = $staging_row[$column];
+                        $query_placeholders[] = '%s';
+                    }
+                }
+                
+                // Insert the row
+                $query = "INSERT INTO {$production_table} (" . implode( ', ', $query_columns ) . ") VALUES (" . implode( ', ', $query_placeholders ) . ")";
+                $result = $wpdb->query( $wpdb->prepare( $query, $query_values ) );
+                
+                if (false === $result) {
+                    $results['error'][] = sprintf( __( 'Could not insert entry with ID %s in table %s.', 'staging2live' ), $id, $table );
+                    return false;
+                } else {
+                    $results['success'][] = sprintf( __( 'Entry with ID %s inserted successfully in table %s.', 'staging2live' ), $id, $table );
+                    return true;
+                }
+                break;
+                
+            case 'modified':
+                // Get the row from staging
+                $staging_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$staging_table} WHERE {$primary_key} = %s", $id ), ARRAY_A );
+                
+                if (!$staging_row) {
+                    $results['error'][] = sprintf( __( 'Could not find entry with ID %s in staging table %s.', 'staging2live' ), $id, $table );
+                    return false;
+                }
+                
+                // Build the query
+                $query_sets = array();
+                $query_values = array();
+                
+                foreach ($staging_row as $column => $value) {
+                    if ($column !== $primary_key) {
+                        $query_sets[] = "{$column} = %s";
+                        $query_values[] = $value;
+                    }
+                }
+                
+                // Add the ID to the values
+                $query_values[] = $id;
+                
+                // Update the row
+                $query = "UPDATE {$production_table} SET " . implode( ', ', $query_sets ) . " WHERE {$primary_key} = %s";
+                $result = $wpdb->query( $wpdb->prepare( $query, $query_values ) );
+                
+                if (false === $result) {
+                    $results['error'][] = sprintf( __( 'Could not update entry with ID %s in table %s.', 'staging2live' ), $id, $table );
+                    return false;
+                } else {
+                    $results['success'][] = sprintf( __( 'Entry with ID %s updated successfully in table %s.', 'staging2live' ), $id, $table );
+                    return true;
+                }
+                break;
+                
+            case 'deleted':
+                // Delete the row
+                $result = $wpdb->delete( $production_table, array( $primary_key => $id ), array( '%s' ) );
+                
+                if (false === $result) {
+                    $results['error'][] = sprintf( __( 'Could not delete entry with ID %s from table %s.', 'staging2live' ), $id, $table );
+                    return false;
+                } else {
+                    $results['success'][] = sprintf( __( 'Entry with ID %s deleted successfully from table %s.', 'staging2live' ), $id, $table );
+                    return true;
+                }
+                break;
+                
+            default:
+                $results['error'][] = sprintf( __( 'Unknown change type for entry with ID %s in table %s.', 'staging2live' ), $id, $table );
+                return false;
+        }
+        
+        return false;
     }
     
     /**
