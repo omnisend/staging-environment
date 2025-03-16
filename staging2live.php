@@ -67,6 +67,11 @@ function stl_init(): void {
 }
 add_action ( 'plugins_loaded', 'stl_init' );
 
+function stl_staging_exists(): bool {
+	global $wpdb;
+	return $wpdb->get_var("SHOW TABLES LIKE 'wp_staging_options'") == 'wp_staging_options';
+}
+
 // Autoload all PHP files in the includes/ folder.
 foreach ( glob( STL_PLUGIN_PATH . 'includes/class-*.php' ) as $filename ) {
 	include_once $filename;

@@ -41,6 +41,9 @@ if ( ! class_exists('STL_Settings') ) {
 		}
 
 		public function add_plugin_page(){
+			if (stl_staging_exists()) {
+                return;
+			}
 			add_menu_page(
 				__( 'Staging2Live', 'staging2live' ),
 				__( 'Staging2Live', 'staging2live' ),
