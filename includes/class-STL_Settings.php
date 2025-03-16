@@ -276,18 +276,20 @@ if ( ! class_exists('STL_Settings') ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'Class is missing. Please contact plugin author.', 'staging2live' ) ) );
 			}
 
-            $staging_name = empty( $this->options_general[ 'staging_name' ] ) ? STL_STAGING_NAME_DEFAULT : $this->options_general[ 'staging_name' ];
+			$staging_name = empty( $this->options_general[ 'staging_name' ] ) ? STL_STAGING_NAME_DEFAULT : $this->options_general[ 'staging_name' ];
 
-            $database = new STL_Database( $staging_name );
-            $result = $database->duplicate_tables();
+			// Start the staging creation process
+			$database = new STL_Database( $staging_name );
 
-			if( ! $result ) {
+			// 1. Duplicate database tables
+			$result = $database->duplicate_tables();
+			if ( ! $result ) {
 				wp_send_json_error( array( 'message' => esc_html__( 'Error while duplicating the database.', 'staging2live' ) ) );
 			}
 
+			// 2. List files for duplication
 			$file_lister = new STL_File_Handling();
 			$file_list = $file_lister->list_files();
-
 			if ( is_wp_error( $file_list ) ) {
 				wp_send_json_error( array( 'message' => sprintf( esc_html__( 'Error %s.', 'staging2live' ), $file_list->get_error_message() ) ) );
 			} else {
@@ -295,10 +297,12 @@ if ( ! class_exists('STL_Settings') ) {
 				$file_lister->insert_files_into_database();
 			}
 
-            $staging_domain = trailingslashit( STL_General::get_site_url() ) . trailingslashit( $staging_name );
+			// 3. Copy files to the staging environment
+			$file_lister->copy_files_to_staging();
 
-			// Simple success message
-			wp_send_json_success( array( 'message' => sprintf( esc_html__( 'Staging site successfully created. The URL is %s', 'staging2live' ), '<a href="' . $staging_domain . '" target="_blank">' . $staging_domain . '<a/>' ) ) );
+			// 4. Finish and generate URL
+			$staging_domain = trailingslashit( STL_General::get_site_url() ) . trailingslashit( $staging_name );
+			wp_send_json_success( array( 'progress' => 100, 'message' => sprintf( esc_html__( 'Staging site successfully created. The URL is %s', 'staging2live' ), '<a href="' . $staging_domain . '" target="_blank">' . $staging_domain . '</a>' ) ) );
 		}
 
 	}
