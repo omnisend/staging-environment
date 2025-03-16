@@ -137,7 +137,7 @@ class STL_DB_Comparer {
      */
     private function log_message($message) {
         if ($this->debug_mode) {
-            error_log('Staging2Live DB - ' . $message);
+            //error_log('Staging2Live DB - ' . $message);
         }
     }
 

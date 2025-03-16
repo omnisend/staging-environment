@@ -127,7 +127,7 @@ class STL_File_Comparer {
      */
     private function log_message($message) {
         if ($this->debug_mode) {
-            error_log('Staging2Live - ' . $message);
+            //error_log('Staging2Live - ' . $message);
         }
     }
 

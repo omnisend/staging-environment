@@ -5,8 +5,6 @@ class STL_File_Handling {
 	private $files = []; // Array to store file information
 	private $table_staging_name;
 
-	private $progress_data = []; // Fortschrittsdaten speichern
-
 	public function __construct() {
 
 		$options = get_option( 'staging2live_settings' );
@@ -166,4 +164,40 @@ class STL_File_Handling {
 		}
 	}
 
+	/**
+	 * Delete folder of previous staging site
+	 */
+	public function delete_staging_files(): void {
+
+		// Define the target directory based on the $this->table_staging_name
+		$target_directory = $this->directory . '/' . $this->table_staging_name;
+
+		if ( is_dir( $target_directory ) ) {
+			self::delete_directory_recursively( $target_directory );
+		}
+
+	}
+
+	private function delete_directory_recursively( $directory ): void {
+
+		// Get all files and subdirectories in the target directory
+		$files = array_diff( scandir( $directory ), array('.', '..') );
+
+		// Loop through all files/subdirectories
+		foreach ( $files as $file ) {
+			$file_path = $directory . '/' . $file;
+
+			// If it's a subdirectory, call the method recursively
+			if ( is_dir( $file_path ) ) {
+				self::delete_directory_recursively( $file_path );
+			} else {
+				// If it's a file, delete it
+				unlink( $file_path );
+			}
+		}
+
+		// Remove the empty directory
+		rmdir( $directory );
+
+	}
 }
