@@ -13,7 +13,7 @@ class STL_File_Handling {
 
 		// Get the absolute path to the WordPress directory, whether it's in the root or a subdirectory
 		global $wpdb;
-		$this->directory = realpath(get_home_path());
+		$this->directory = realpath(ABSPATH);
 
 		// Make sure the directory path uses slashes (for consistency across OS)
 		$this->directory = str_replace('\\', '/', $this->directory);

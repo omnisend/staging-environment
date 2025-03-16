@@ -14,7 +14,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 /**
  * Class STL_Admin
- * 
+ *
  * Handles the admin page and UI of the plugin
  */
 class STL_Admin {
@@ -33,8 +33,13 @@ class STL_Admin {
             return;
         }
 
-		add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
-		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
+        add_action( 'admin_menu', array( $this, 'add_admin_menu' ) );
+        add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
+
+        // Disable emails for staging environments.
+        if ( defined( 'WP_ENVIRONMENT_TYPE' ) && 'staging' === WP_ENVIRONMENT_TYPE ) {
+            add_filter('pre_wp_mail', '__return_false' );
+        }
     }
 
     /**
@@ -60,8 +65,17 @@ class STL_Admin {
             'manage_options',
             'staging2live',
             array( $this, 'render_admin_page' ),
-            'dashicons-migrate',
-            30
+            'dashicons-controls-repeat',
+            90
+        );
+
+        add_submenu_page(
+            'staging2live',
+            'Sync',
+            'Sync',
+            'manage_options',
+            'staging2live',
+            array( $this, 'render_admin_page' )
         );
     }
 
@@ -112,6 +126,7 @@ class STL_Admin {
             return;
         }
 
+        $staging_domain = STL_Settings::get_staging_domain();
         $file_comparer = STL_File_Comparer::get_instance();
         $db_comparer = STL_DB_Comparer::get_instance();
 
@@ -121,18 +136,19 @@ class STL_Admin {
         ?>
         <div class="wrap">
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-            
+
+            Staging site: <a target="_blank" href="<?php echo $staging_domain; ?>"><?php echo $staging_domain; ?></a>
             <div class="stl-tabs">
                 <ul class="stl-tabs-nav">
                     <li><a href="#stl-tab-files"><?php esc_html_e( 'File Changes', 'staging2live' ); ?></a></li>
                     <li><a href="#stl-tab-database"><?php esc_html_e( 'Database Changes', 'staging2live' ); ?></a></li>
                 </ul>
-                
+
                 <div id="stl-tab-files" class="stl-tab-content">
                     <h2><?php esc_html_e( 'File Changes', 'staging2live' ); ?></h2>
                     <?php $this->render_file_changes( $file_changes ); ?>
                 </div>
-                
+
                 <div id="stl-tab-database" class="stl-tab-content">
                     <h2><?php esc_html_e( 'Database Changes', 'staging2live' ); ?></h2>
                     <?php $this->render_db_changes( $db_changes ); ?>
@@ -415,4 +431,4 @@ class STL_Admin {
 }
 
 // Initialize the admin class
-STL_Admin::get_instance(); 
+STL_Admin::get_instance();
