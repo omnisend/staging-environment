@@ -2,7 +2,7 @@
 name: Feature request
 about: Suggest an idea for this project
 title: I would love it if this plugin could...
-labels: "[Priority] Low, [Type] Enhancement"
+labels: ["enhancement"]
 assignees: ''
 ---
 
