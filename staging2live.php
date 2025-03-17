@@ -86,6 +86,21 @@ function stl_staging_values(): array {
 	);
 }
 
+/**
+ * Returns tur if a staging site exists
+ *
+ * @return bool
+ */
+function stl_staging_exists(): bool {
+
+	global $wpdb;
+
+	$staging = stl_staging_values();
+
+	return $wpdb->get_var("SHOW TABLES LIKE '{$staging[ 'table_prefix' ]}_options'") == $staging[ 'table_prefix' ] . '_options';
+}
+
+
 // Autoload all PHP files in the includes/ folder.
 foreach ( glob( STL_PLUGIN_PATH . 'includes/class-*.php' ) as $filename ) {
 	include_once $filename;
