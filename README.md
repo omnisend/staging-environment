@@ -26,8 +26,8 @@ Website: https://staging2live.com
 
 ## Installation
 
-1. Download the plugin here from GitHub [here](https://github.com/omnisend/staging2live).
-2. Upload the plugin folder to your `/wp-content/plugins/` directory.
+1. Clone this repo or download the latest plugin version from [here](https://github.com/omnisend/staging2live/archive/refs/heads/main.zip).
+2. Upload the downloaded plugin using the Wordpress dashboard `Plugins` menu or extract in to the `staging2live` folder to your `/wp-content/plugins/` directory.
 3. Activate the plugin through the 'Plugins' menu in the WordPress dashboard.
 4. Once activated, the tool will appear under the "Staging2Live" menu in the WordPress Admin dashboard.
 
