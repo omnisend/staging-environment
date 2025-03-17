@@ -8,7 +8,7 @@ if ( ! class_exists('STL_URL_Replacer') ) {
          * @return void
          */
         public function init() {
-            add_filter( 'the_content', array( $this, 'replace_urls_in_content' ), PHP_INT_MAX );
+            //add_filter( 'the_content', array( $this, 'replace_urls_in_content' ), PHP_INT_MAX );
         }
 
 		/**
