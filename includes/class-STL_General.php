@@ -36,7 +36,7 @@ class STL_General {
 
 		// check if port is different from standard port (80 or 443)
 		if ( ( $protocol === 'http' && $_SERVER[ 'SERVER_PORT' ] != 80) || ( $protocol === 'https' && $_SERVER[ 'SERVER_PORT' ] != 443 ) ) {
-			$host .= ':' . $_SERVER[ 'SERVER_PORT '];  // add port if not standard port
+			$host .= ':' . $_SERVER[ 'SERVER_PORT' ];  // add port if not standard port
 		}
 
 		return  $protocol . '://' . $host;

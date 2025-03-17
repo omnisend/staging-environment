@@ -508,6 +508,10 @@
     font-weight: bold;
 }
 
+#stl-sync-result-modal .stl-modal-body .notice-success {
+    margin-left: 0;
+}
+
 /* Responsive adjustments for image comparison */
 @media screen and (max-width: 782px) {
     .stl-image-container {
