@@ -81,7 +81,7 @@ function stl_get_staging_values(): array {
 
 	return array(
 		'name'         => $name,
-		'table_prefix' => $name . $wpdb->prefix,
+		'table_prefix' => $wpdb->prefix . $name,
 		'domain'       => site_url() . '/' . $name
 	);
 }
