@@ -72,7 +72,7 @@ add_action ( 'plugins_loaded', 'stl_init' );
  *
  * @return array
  */
-function stl_staging_values(): array {
+function stl_get_staging_values(): array {
 
 	global $wpdb;
 
@@ -95,7 +95,7 @@ function stl_staging_exists(): bool {
 
 	global $wpdb;
 
-	$staging = stl_staging_values();
+	$staging = stl_get_staging_values();
 
 	return $wpdb->get_var("SHOW TABLES LIKE '{$staging[ 'table_prefix' ]}_options'") == $staging[ 'table_prefix' ] . '_options';
 }
