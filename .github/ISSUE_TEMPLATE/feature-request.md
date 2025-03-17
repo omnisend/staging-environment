@@ -3,6 +3,7 @@ name: Feature request
 about: Suggest an idea for this project
 title: I would love it if this plugin could...
 labels: ["enhancement"]
+type: "Feature"
 assignees: ''
 ---
 
