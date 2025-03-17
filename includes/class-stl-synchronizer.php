@@ -117,12 +117,15 @@ class STL_Synchronizer {
             $change_type = $file_changes[ $file ];
             $staging_path = $this->staging_root . $file;
             $production_path = $this->production_root . $file;
+
+            // Determine if these files are going from staging to production. If not, it is production -> staging.
+            $staging_to_production = ( definend('WP_ENVIRONMENT_TYPE')  && 'staging' === WP_ENVIRONMENT_TYPE );
             
             switch ( $change_type ) {
                 case 'added':
                 case 'modified':
                     // Create the directory if it doesn't exist
-                    $dir = dirname( $production_path );
+                    $dir = $staging_to_production ? dirname( $production_path ) : dirname( $staging_path );
                     if ( ! is_dir( $dir ) ) {
                         if ( ! wp_mkdir_p( $dir ) ) {
                             $results['error'][ $file ] = __( 'Could not create directory.', 'staging2live' );
@@ -131,23 +134,43 @@ class STL_Synchronizer {
                     }
                     
                     // Copy the file
-                    if ( ! copy( $staging_path, $production_path ) ) {
-                        $results['error'][ $file ] = __( 'Could not copy file.', 'staging2live' );
-                    } else {
-                        $results['success'][ $file ] = __( 'File copied successfully.', 'staging2live' );
+                    if ( $staging_to_production ) {
+                        if ( ! copy( $staging_path, $production_path ) ) {
+                            $results['error'][ $file ] = __( 'Could not copy file.', 'staging2live' );
+                        } else {
+                            $results['success'][ $file ] = __( 'File copied successfully.', 'staging2live' );
+                        }
+                    } else  {
+                        if ( ! copy( $production_path, $staging_path ) ) {
+                            $results['error'][ $file ] = __( 'Could not copy file.', 'staging2live' );
+                        } else {
+                            $results['success'][ $file ] = __( 'File copied successfully.', 'staging2live' );
+                        }
                     }
                     break;
                     
                 case 'deleted':
                     // Delete the file
-                    if ( file_exists( $production_path ) ) {
-                        if ( ! unlink( $production_path ) ) {
-                            $results['error'][ $file ] = __( 'Could not delete file.', 'staging2live' );
+                    if ( $staging_to_production ) {
+                        if ( file_exists( $production_path ) ) {
+                            if ( ! unlink( $production_path ) ) {
+                                $results['error'][ $file ] = __( 'Could not delete file.', 'staging2live' );
+                            } else {
+                                $results['success'][ $file ] = __( 'File deleted successfully.', 'staging2live' );
+                            }
                         } else {
-                            $results['success'][ $file ] = __( 'File deleted successfully.', 'staging2live' );
+                            $results['success'][ $file ] = __( 'File already deleted.', 'staging2live' );
                         }
                     } else {
-                        $results['success'][ $file ] = __( 'File already deleted.', 'staging2live' );
+                        if ( file_exists( $staging_path ) ) {
+                            if ( ! unlink( $staging_path ) ) {
+                                $results['error'][ $file ] = __( 'Could not delete file.', 'staging2live' );
+                            } else {
+                                $results['success'][ $file ] = __( 'File deleted successfully.', 'staging2live' );
+                            }
+                        } else {
+                            $results['success'][ $file ] = __( 'File already deleted.', 'staging2live' );
+                        }
                     }
                     break;
                     
