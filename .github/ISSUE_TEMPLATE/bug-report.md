@@ -31,11 +31,7 @@ assignees: ''
 
 - [ ] This bug happens with no other plugins activated
 - [ ] This bug happens with a default WordPress theme active
-- [ ] This bug happens **without** the Gutenberg plugin active
 - [ ] I can reproduce this bug consistently using the steps above
 
 ### WordPress version:
 <!-- What version of WordPress are you using? -->
-
-### Gutenberg version:
-<!-- if applicable -->
