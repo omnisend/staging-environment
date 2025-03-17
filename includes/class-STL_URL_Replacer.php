@@ -4,6 +4,12 @@ if ( !defined('ABSPATH' ) ) exit;
 
 if ( ! class_exists('STL_URL_Replacer') ) {
 	class STL_URL_Replacer {
+        /**
+         * @return void
+         */
+        public function init() {
+            add_filter( 'the_content', array( $this, 'replace_urls_in_content' ), PHP_INT_MAX );
+        }
 
 		/**
 		 * Replaces URLs in the WordPress database.
@@ -97,6 +103,19 @@ if ( ! class_exists('STL_URL_Replacer') ) {
 			}
 		}
 
+        /**
+         * @param $buffer
+         *
+         * @return string
+         */
+        public function replace_urls_in_content( $buffer ) {
+            if ( ! defined( 'WP_HOME' ) && ! defined( 'WP_PRODUCTION_URL' ) ) {
+                return $buffer;
+            }
+
+            return str_replace( WP_PRODUCTION_URL, WP_HOME, $buffer );
+        }
+
 		/**
 		 * Replaces URLs in serialized data.
 		 *
@@ -122,3 +141,5 @@ if ( ! class_exists('STL_URL_Replacer') ) {
 	}
 
 }
+
+(new STL_URL_Replacer())->init();
