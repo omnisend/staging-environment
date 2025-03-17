@@ -7,6 +7,7 @@ if ( ! class_exists('STL_Settings') ) {
 
 		private $admin_url;
 		private $options_general;
+		private $staging;
 		private $option_group_general;
 		private $option_page_general;
 		private $option_page_cli;
@@ -19,7 +20,7 @@ if ( ! class_exists('STL_Settings') ) {
 
 			$this->options_general      = get_option( $this->option_group_general );
 
-            $this->staging              = stl_get_staging_values();
+			$this->staging              = stl_get_staging_values();
 
 			add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue' ) );
 
