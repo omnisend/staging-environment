@@ -133,6 +133,8 @@ class STL_Admin {
         $file_changes = $file_comparer->get_changes();
         $db_changes = $db_comparer->get_changes();
 
+        $push_to_button_text = ( defined('WP_ENVIRONMENT_TYPE') && 'staging' === WP_ENVIRONMENT_TYPE ) ? __( 'Push Selected Changes To Production', 'staging2live' ) : __( 'Push Selected Changes To Staging', 'staging2live' );
+
         ?>
         <div class="wrap">
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
@@ -156,7 +158,7 @@ class STL_Admin {
             </div>
 
             <div class="stl-actions">
-                <button id="stl-sync-selected" class="button button-primary"><?php esc_html_e( 'Push Selected Changes To Live', 'staging2live' ); ?></button>
+                <button id="stl-sync-selected" class="button button-primary"><?php echo esc_html( $push_to_button_text ); ?></button>
             </div>
         </div>
         <?php
