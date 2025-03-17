@@ -67,9 +67,23 @@ function stl_init(): void {
 }
 add_action ( 'plugins_loaded', 'stl_init' );
 
-function stl_staging_exists(): bool {
+/**
+ * Returns an array with variable regarding the staging site
+ *
+ * @return array
+ */
+function stl_staging_values(): array {
+
 	global $wpdb;
-	return $wpdb->get_var("SHOW TABLES LIKE 'wp_staging_options'") == 'wp_staging_options';
+
+	$options = get_option( 'staging2live_settings' );
+	$name    = $options[ 'staging_name' ];
+
+	return array(
+		'name'         => $name,
+		'table_prefix' => $name . $wpdb->prefix,
+		'domain'       => site_url() . '/' . $name
+	);
 }
 
 // Autoload all PHP files in the includes/ folder.
