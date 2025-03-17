@@ -126,18 +126,18 @@ class STL_Admin {
             return;
         }
 
-        $staging_domain = STL_Settings::get_staging_domain();
+        $staging       = stl_get_staging_values();
         $file_comparer = STL_File_Comparer::get_instance();
-        $db_comparer = STL_DB_Comparer::get_instance();
+        $db_comparer   = STL_DB_Comparer::get_instance();
 
-        $file_changes = $file_comparer->get_changes();
-        $db_changes = $db_comparer->get_changes();
+        $file_changes  = $file_comparer->get_changes();
+        $db_changes    = $db_comparer->get_changes();
 
         ?>
         <div class="wrap">
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
-            Staging site: <a target="_blank" href="<?php echo $staging_domain; ?>"><?php echo $staging_domain; ?></a>
+            <p><?php esc_html_e( 'Staging site', 'staging2live' ); ?>: <a target="_blank" href="<?php echo $staging[ 'domain' ]; ?>"><?php echo $staging[ 'domain' ]; ?></a>
             <div class="stl-tabs">
                 <ul class="stl-tabs-nav">
                     <li><a href="#stl-tab-files"><?php esc_html_e( 'File Changes', 'staging2live' ); ?></a></li>
