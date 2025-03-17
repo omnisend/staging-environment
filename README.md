@@ -62,7 +62,7 @@ If you encounter any issues or have questions, feel free to open an issue.
 
 ## Limitations/Things to Keep in Mind
 
-It is worth noting, if you have an ecommerce store setup on your site and you continue to make sales on your production site, your production and staging environments will quickly fall out of sync. If that happens, you should sync the sales data from your production environment over to your staging environment before pushing your data back to production.
+It's worth noting, if you have an eCommerce store setup on your site and you continue to make sales on your production site, your production and staging environments will quickly fall out of sync. If that happens, you should sync the sales data from your production environment over to your staging environment before pushing your data back to production.
 
 You should keep in mind that this is not a guaranteed method. It's still possible you make a sale on your production environment before you have the chance to sync your environments, which would lead to losing that sales data.
 
