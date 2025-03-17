@@ -77,7 +77,7 @@ function stl_get_staging_values(): array {
 	global $wpdb;
 
 	$options = get_option( 'staging2live_settings' );
-	$name    = $options[ 'staging_name' ];
+	$name    = empty( $options[ 'staging_name' ] ) ? STL_STAGING_NAME_DEFAULT : $options[ 'staging_name' ];;
 
 	return array(
 		'name'         => $name,
