@@ -12,15 +12,19 @@ class STL_Database {
 
     }
 
-    public function clean_staging_tables(): bool {
-        $staging_tables = $this->wpdb->get_col( "SHOW TABLES LIKE '{$this->wpdb->prefix}{$this->staging_name}_%'" );
+    public function clean_staging_tables(): void {
+        $this->clean_tables_by_prefix("{$this->wpdb->prefix}{$this->staging_name}_");
+        $this->clean_tables_by_prefix("{$this->wpdb->prefix}{$this->staging_name}_snapshot_");
+    }
+    private function clean_tables_by_prefix($prefix):bool {
+        $tables = $this->wpdb->get_col( "SHOW TABLES LIKE '{$prefix}%'" );
 
-        if ( empty( $staging_tables ) ) {
+        if ( empty( $tables ) ) {
             return false;
         }
 
-        foreach ( $staging_tables as $staging_table ) {
-            $this->wpdb->query( "DROP TABLE IF EXISTS $staging_table" );
+        foreach ( $tables as $table ) {
+            $this->wpdb->query( "DROP TABLE IF EXISTS $table" );
         }
 
         return true;
@@ -36,19 +40,25 @@ class STL_Database {
         }
 
         $new_prefix = $this->wpdb->prefix . $this->staging_name . '_';
+        $snapshot_prefix = $this->wpdb->prefix . $this->staging_name . '_snapshot_';
 
         foreach ( $tables as $table ) {
             $staging_table = str_replace( $this->wpdb->prefix, $new_prefix, $table );
+            $snapshot_table = str_replace( $this->wpdb->prefix, $snapshot_prefix, $table );
 
             $this->wpdb->query( "DROP TABLE IF EXISTS $staging_table" );
+            $this->wpdb->query( "DROP TABLE IF EXISTS $snapshot_table" );
 
             $create_table_sql = $this->wpdb->get_row( "SHOW CREATE TABLE $table", ARRAY_A );
 
             $create_sql = str_replace( "CREATE TABLE `{$table}`", "CREATE TABLE `{$staging_table}`", $create_table_sql['Create Table'] );
+            $create_sql_snapshot = str_replace( "CREATE TABLE `{$table}`", "CREATE TABLE `{$snapshot_table}`", $create_table_sql['Create Table'] );
 
             $this->wpdb->query( $create_sql );
+            $this->wpdb->query( $create_sql_snapshot );
 
             $this->wpdb->query( "INSERT INTO $staging_table SELECT * FROM $table" );
+            $this->wpdb->query( "INSERT INTO $snapshot_table SELECT * FROM $table" );
         }
 
         $this->wpdb->query( "UPDATE " . $new_prefix . "usermeta SET meta_key = '" . $new_prefix. "capabilities' where meta_key = '" . $this->wpdb->prefix . "capabilities'" );
