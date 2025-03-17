@@ -301,6 +301,13 @@ class STL_Synchronizer {
         
         // Clear cache
         delete_transient( 'stl_db_changes' );
+
+		// Replace staging URL in live database
+	    if( ! class_exists( 'STL_URL_Replacer') ) {
+		    include_once STL_PLUGIN_PATH . 'includes/class-STL_URL_Replacer.php';
+	    }
+		$replace = new STL_URL_Replacer();
+		$replace->replace_staging_url_in_live_database();
         
         return $results;
     }

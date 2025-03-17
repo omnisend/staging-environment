@@ -10,7 +10,7 @@ if ( ! class_exists('STL_URL_Replacer') ) {
 		 *
 		 * @return void
 		 */
-		public function replace_url_in_database(): void {
+		public function replace_staging_url_in_live_database(): void {
 
 			global $wpdb;
 
