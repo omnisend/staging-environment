@@ -31,6 +31,7 @@ class STL_DB_Comparer {
      * @var string
      */
     private $production_prefix = 'wp_';
+    private $snapshot_prefix = 'wp_staging_snapshot_';
 
     /**
      * Staging database prefix
@@ -223,10 +224,10 @@ class STL_DB_Comparer {
         $grouped_changes = array();
         
         // Log the prefixes being used
-        $this->log_message("Using production prefix: '{$this->production_prefix}' and staging prefix: '{$this->staging_prefix}'");
+        $this->log_message("Using production prefix: '{$this->snapshot_prefix}' and staging prefix: '{$this->staging_prefix}'");
         
         // Get all tables in the database
-        $tables = $wpdb->get_results( "SHOW TABLES LIKE '{$this->production_prefix}%'", ARRAY_N );
+        $tables = $wpdb->get_results( "SHOW TABLES LIKE '{$this->snapshot_prefix}%'", ARRAY_N );
         $this->log_message("Found " . count($tables) . " production tables");
         
         // Check for staging tables too
@@ -235,10 +236,10 @@ class STL_DB_Comparer {
         
         foreach ( $tables as $table ) {
             $production_table = $table[0];
-            $staging_table = str_replace( $this->production_prefix, $this->staging_prefix, $production_table );
+            $staging_table = str_replace( $this->snapshot_prefix, $this->staging_prefix, $production_table );
             
             // Extract the table name without prefix
-            $table_name = str_replace( $this->production_prefix, '', $production_table );
+            $table_name = str_replace( $this->snapshot_prefix, '', $production_table );
             
             // Log tables being compared
             $this->log_message("Comparing tables - Production: '$production_table', Staging: '$staging_table'");
@@ -980,7 +981,7 @@ class STL_DB_Comparer {
     private function get_post_id_for_comment($comment_id) {
         global $wpdb;
         
-        $production_comments_table = $this->production_prefix . 'comments';
+        $production_comments_table = $this->snapshot_prefix . 'comments';
         
         $post_id = $wpdb->get_var($wpdb->prepare(
             "SELECT comment_post_ID FROM {$production_comments_table} WHERE comment_ID = %d",
@@ -1005,7 +1006,7 @@ class STL_DB_Comparer {
             return false;
         }
         
-        $production_table = $this->production_prefix . $table;
+        $production_table = $this->snapshot_prefix . $table;
         $staging_table = $this->staging_prefix . $table;
         
         // Get the primary key column for this table
