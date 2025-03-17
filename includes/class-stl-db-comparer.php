@@ -340,12 +340,11 @@ class STL_DB_Comparer {
         // Find new entries (in staging but not in production)
         $new_ids = array_diff( $staging_ids, $production_ids );
         foreach ( $new_ids as $id ) {
+            $staging_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$staging_table} WHERE {$primary_key} = %s", $id ), ARRAY_A );
 			if ( $table_name == 'options' && ! empty($staging_row['option_name']) && $this->is_excluded_name($staging_row['option_name'])){
 				continue;
 			}
 
-            $staging_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$staging_table} WHERE {$primary_key} = %s", $id ), ARRAY_A );
-            
             $changes[] = array(
                 'id' => $id,
                 'type' => 'added' . (!empty($staging_row['option_name']) ? " > {$staging_row['option_name']}" : ''),
@@ -357,14 +356,13 @@ class STL_DB_Comparer {
         // Find deleted entries (in production but not in staging)
         $deleted_ids = array_diff( $production_ids, $staging_ids );
         foreach ( $deleted_ids as $id ) {
-			if ( $table_name == 'options' && ! empty($staging_row['option_name']) && $this->is_excluded_name($staging_row['option_name']))
+            $production_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$production_table} WHERE {$primary_key} = %s", $id ), ARRAY_A );
+			if ( $table_name == 'options' && ! empty($production_row['option_name']) && $this->is_excluded_name($production_row['option_name']))
 				continue;
 
-            $production_row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$production_table} WHERE {$primary_key} = %s", $id ), ARRAY_A );
-            
             $changes[] = array(
                 'id' => $id,
-                'type' => 'deleted'  . (!empty($staging_row['option_name']) ? " > {$staging_row['option_name']}" : ''),
+                'type' => 'deleted'  . (!empty($production_row['option_name']) ? " > {$production_row['option_name']}" : ''),
                 'summary' => sprintf( __( 'Entry with ID %s deleted', 'staging2live' ), $id ),
                 'details' => $production_row,
             );
