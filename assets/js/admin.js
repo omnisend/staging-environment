@@ -556,17 +556,29 @@
     }
 
     /**
+     * Update the sync button state based on selection
+     */
+    function updateSyncButtonState() {
+        var $syncButton = $('#stl-sync-selected');
+        
+        // Enable the button if any files or DB entries are selected
+        if ($selectedFiles.length > 0 || $selectedDBEntries.length > 0) {
+            $syncButton.prop('disabled', false);
+        } else {
+            $syncButton.prop('disabled', true);
+        }
+    }
+
+    /**
      * Initialize sync button
      */
     function initSyncButton() {
+        // Remove any existing click handlers to prevent duplicates
+        $('#stl-sync-selected').off('click');
+        
+        // Add the click handler
         $('#stl-sync-selected').on('click', function() {
             if ($syncingChanges) {
-                return;
-            }
-
-            // Check if anything is selected
-            if ($selectedFiles.length === 0 && $selectedDBEntries.length === 0) {
-                alert('Please select at least one change to sync.');
                 return;
             }
 
