@@ -12,11 +12,10 @@ class STL_File_Handling {
 		$this->table_staging_name = empty( $options[ 'staging_name' ] ) ? STL_STAGING_NAME_DEFAULT : $options[ 'staging_name' ];
 
 		// Get the absolute path to the WordPress directory, whether it's in the root or a subdirectory
-		global $wpdb;
-		$this->directory = realpath(ABSPATH);
+		$this->directory = realpath( ABSPATH );
 
 		// Make sure the directory path uses slashes (for consistency across OS)
-		$this->directory = str_replace('\\', '/', $this->directory);
+		$this->directory = str_replace('\\', '/', $this->directory );
 
 	}
 
