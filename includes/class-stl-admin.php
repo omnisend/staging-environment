@@ -126,18 +126,20 @@ class STL_Admin {
             return;
         }
 
-        $staging_domain = STL_Settings::get_staging_domain();
+        $staging       = stl_get_staging_values();
         $file_comparer = STL_File_Comparer::get_instance();
-        $db_comparer = STL_DB_Comparer::get_instance();
+        $db_comparer   = STL_DB_Comparer::get_instance();
 
-        $file_changes = $file_comparer->get_changes();
-        $db_changes = $db_comparer->get_changes();
+        $file_changes  = $file_comparer->get_changes();
+        $db_changes    = $db_comparer->get_changes();
+
+        $push_to_button_text = ( defined('WP_ENVIRONMENT_TYPE') && 'staging' === WP_ENVIRONMENT_TYPE ) ? __( 'Push Selected Changes To Production', 'staging2live' ) : __( 'Push Selected Changes To Staging', 'staging2live' );
 
         ?>
         <div class="wrap">
             <h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
-            Staging site: <a target="_blank" href="<?php echo $staging_domain; ?>"><?php echo $staging_domain; ?></a>
+            <p><?php esc_html_e( 'Staging site', 'staging2live' ); ?>: <a target="_blank" href="<?php echo $staging[ 'domain' ]; ?>"><?php echo $staging[ 'domain' ]; ?></a>
             <div class="stl-tabs">
                 <ul class="stl-tabs-nav">
                     <li><a href="#stl-tab-files"><?php esc_html_e( 'File Changes', 'staging2live' ); ?></a></li>
@@ -156,7 +158,7 @@ class STL_Admin {
             </div>
 
             <div class="stl-actions">
-                <button id="stl-sync-selected" class="button button-primary"><?php esc_html_e( 'Push Selected Changes To Live', 'staging2live' ); ?></button>
+                <button id="stl-sync-selected" class="button button-primary"><?php echo esc_html( $push_to_button_text ); ?></button>
             </div>
         </div>
         <?php

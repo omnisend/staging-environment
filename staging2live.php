@@ -67,10 +67,39 @@ function stl_init(): void {
 }
 add_action ( 'plugins_loaded', 'stl_init' );
 
-function stl_staging_exists(): bool {
+/**
+ * Returns an array with variable regarding the staging site
+ *
+ * @return array
+ */
+function stl_get_staging_values(): array {
+
 	global $wpdb;
-	return $wpdb->get_var("SHOW TABLES LIKE 'wp_staging_options'") == 'wp_staging_options';
+
+	$options = get_option( 'staging2live_settings' );
+	$name    = empty( $options[ 'staging_name' ] ) ? STL_STAGING_NAME_DEFAULT : $options[ 'staging_name' ];;
+
+	return array(
+		'name'         => $name,
+		'table_prefix' => $name . $wpdb->prefix,
+		'domain'       => site_url() . '/' . $name
+	);
 }
+
+/**
+ * Returns tur if a staging site exists
+ *
+ * @return bool
+ */
+function stl_staging_exists(): bool {
+
+	global $wpdb;
+
+	$staging = stl_get_staging_values();
+
+	return $wpdb->get_var("SHOW TABLES LIKE '{$staging[ 'table_prefix' ]}_options'") == $staging[ 'table_prefix' ] . '_options';
+}
+
 
 // Autoload all PHP files in the includes/ folder.
 foreach ( glob( STL_PLUGIN_PATH . 'includes/class-*.php' ) as $filename ) {

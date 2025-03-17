@@ -19,6 +19,8 @@ if ( ! class_exists('STL_Settings') ) {
 
 			$this->options_general      = get_option( $this->option_group_general );
 
+            $this->staging              = stl_get_staging_values();
+
 			add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue' ) );
 
 			add_action( 'admin_menu', array( $this, 'add_plugin_page' ) );
@@ -268,13 +270,6 @@ if ( ! class_exists('STL_Settings') ) {
 			return $new_input;
 		}
 
-        public static function get_staging_domain(): string {
-			$options_general = get_option( 'staging2live_settings' );
-			$staging_name = empty( $options_general[ 'staging_name' ] ) ? STL_STAGING_NAME_DEFAULT : $this->options_general[ 'staging_name' ];
-
-			return trailingslashit( STL_General::get_site_url() ) . trailingslashit( $staging_name );
-		}
-
 		/**
 		 * WP ajax request for creating staging site
 		 */
@@ -324,7 +319,7 @@ if ( ! class_exists('STL_Settings') ) {
 			$file_lister->copy_files_to_staging();
 
 			// 5. Finish and generate URL
-			wp_send_json_success( array( 'message' => sprintf( esc_html__( 'Staging site successfully created. The URL is %s', 'staging2live' ), '<a href="' . self::get_staging_domain() . '" target="_blank">' . self::get_staging_domain() . '</a>' ) ) );
+			wp_send_json_success( array( 'message' => sprintf( esc_html__( 'Staging site successfully created. The URL is %s', 'staging2live' ), '<a href="' . $this->staging[ 'domain' ] . '" target="_blank">' . $this->staging[ 'domain' ] . '</a>' ) ) );
 		}
 
 	}
