@@ -15,4 +15,4 @@ If you would like to contribute back to Staging2Live, please see the "[Contribut
 | [@rokeras](https://github.com/rokeras)                         |
 | [@EvanHerman](https://github.com/evanherman)                   |
 | [@webdados](https://github.com/webdados)                       |
-| Tadas Pukas                                                    |
+| [@covertopcover](https://github.com/covertopcover)             |
