@@ -8,17 +8,20 @@ if ( ! class_exists('STL_URL_Replacer') ) {
 		/**
 		 * Replaces URLs in the WordPress database.
 		 *
-		 * @param string $old_url The old URL to be replaced.
-		 * @param string $new_url The new URL to replace with.
-		 *
 		 * @return void
 		 */
-		public function replace_url_in_database( string $old_url, string $new_url, string $table_prefix_staging ): void {
+		public function replace_url_in_database(): void {
 
 			global $wpdb;
 
+			$staging     = stl_get_staging_values();
+			$staging_url = $staging[ 'domain' ]; // The staging URL to be replaced
+			$live_url    = site_url(); // The live  URL to replace with.
+
 			// Loop through all tables that may contain serialized data
-			$tables = $wpdb->get_results( "SHOW TABLES LIKE '{$table_prefix_staging}%'", ARRAY_N );
+			$tables = $wpdb->get_results( "SELECT table_name FROM INFORMATION_SCHEMA.TABLES 
+                  WHERE table_schema = '{DB_NAME}'
+                    AND table_name NOT LIKE '{$staging[ 'table_prefix' ]}%';", ARRAY_N );
 
 			foreach ( $tables as $table ) {
 				$table_name = $table[0];
@@ -47,7 +50,7 @@ if ( ! class_exists('STL_URL_Replacer') ) {
 
 						// Fetch the data
 						$query   = $wpdb->prepare( "SELECT `{$column_name}`, `{$id_field}` FROM {$table_name} WHERE `{$column_name}` LIKE %s",
-						                           '%' . $wpdb->esc_like( $old_url ) . '%' );
+						                           '%' . $wpdb->esc_like( $staging_url ) . '%' );
 						$results = $wpdb->get_results( $query );
 
 						foreach ( $results as $row ) {
@@ -60,8 +63,8 @@ if ( ! class_exists('STL_URL_Replacer') ) {
 
 								// Replace old URL in unserialized data
 								$updated_data = self::replace_url_in_serialized_data( $unserialized_data,
-								                                                      $old_url,
-								                                                      $new_url );
+								                                                      $staging_url,
+								                                                      $live_url );
 
 								// Re-serialize the updated data
 								$new_serialized_data = serialize( $updated_data );
@@ -77,7 +80,7 @@ if ( ! class_exists('STL_URL_Replacer') ) {
 								}
 							} else {
 								// If not serialized, perform regular string replacement
-								$updated_value = str_replace( $old_url, $new_url, $original_value );
+								$updated_value = str_replace( $staging_url, $live_url, $original_value );
 
 								// Update if the value has changed
 								if ( $updated_value !== $original_value ) {
